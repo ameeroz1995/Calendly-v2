@@ -304,6 +304,8 @@ export function createRoutingForms({ router, eventBus } = {}) {
         const form = { ...ctrl.getState().builderForm }
         const questions = [...(form.questions || [])]
         if (!questions[qi]) return
+        // NOTE: these elements are dynamically generated without id attributes;
+        // querySelector is used as a fallback until ids can be added to the template.
         // Read from DOM inputs that target this question
         const selectEl = document.querySelector(`select[onchange*="_updateQuestion(${qi}, 'type')"]`)
         const inputEl = document.querySelector(`input[oninput*="_updateQuestion(${qi}, 'label')"]`)

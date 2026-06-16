@@ -125,7 +125,7 @@ export function createWorkspaceDetail({ router, eventBus } = {}) {
         }
       },
       addTask() {
-        const input = document.getElementById('ws-task-input')
+        const input = ctrl.$('ws-task-input')
         if (!input) return
         const title = input.value.trim()
         if (!title) return
@@ -212,7 +212,7 @@ export function createWorkspaceDetail({ router, eventBus } = {}) {
         _persist(ws)
       },
       sendMessage() {
-        const input = document.getElementById('ws-msg-input')
+        const input = ctrl.$('ws-msg-input')
         if (!input) return
         const text = input.value.trim()
         if (!text) return
