@@ -44,6 +44,9 @@ export function createStatusDot({ color = 'gray' } = {}) {
  * @param {string} [color='gray'] — green|yellow|red|gray
  * @returns {string} HTML placeholder (data-cid)
  */
+let _cachedStatusDot = null
 export function statusDot(color = 'gray') {
-  return createStatusDot({ color }).toString()
+  if (_cachedStatusDot) return _cachedStatusDot
+  _cachedStatusDot = createStatusDot({ color }).toString()
+  return _cachedStatusDot
 }
