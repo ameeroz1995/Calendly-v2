@@ -51,6 +51,9 @@ export function createSkeletonTable({ rows = 5, cols = 5 } = {}) {
  * @param {number} [cols=5]
  * @returns {string} HTML placeholder (data-cid)
  */
+let _cachedSkeletonTable = null
 export function skeletonTable(rows = 5, cols = 5) {
-  return createSkeletonTable({ rows, cols }).toString()
+  if (_cachedSkeletonTable) return _cachedSkeletonTable
+  _cachedSkeletonTable = createSkeletonTable({ rows, cols }).toString()
+  return _cachedSkeletonTable
 }
