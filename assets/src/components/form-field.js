@@ -95,6 +95,9 @@ export function createFormField({ field = {}, value = '', errors = {} } = {}) {
  * @param {Object} [errors={}]
  * @returns {string} HTML placeholder (data-cid)
  */
+let _cachedFormField = null
 export function formField(field, value = '', errors = {}) {
-  return createFormField({ field, value, errors }).toString()
+  if (_cachedFormField) return _cachedFormField
+  _cachedFormField = createFormField({ field, value, errors }).toString()
+  return _cachedFormField
 }
