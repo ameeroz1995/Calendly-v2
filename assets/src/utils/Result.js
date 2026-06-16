@@ -181,7 +181,10 @@ class AsyncResult {
         try {
           const result = await fn(value)
           if (result instanceof AsyncResult) return result.#promise
-          if (result instanceof Result) return result.unwrap()
+          if (result instanceof Result) {
+            const [val, err] = result.unwrap()
+            return [result.ok, val, err]
+          }
           return [true, result, null]
         } catch (e) {
           return [false, null, e]
