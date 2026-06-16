@@ -46,9 +46,9 @@ export function createSkeletonCards({ count = 1 } = {}) {
  * @param {number} [count=1]
  * @returns {string} HTML placeholder (data-cid)
  */
-let _cachedSkeletonCards = null
+const _cache = new Map()
 export function skeletonCards(count = 1) {
-  if (_cachedSkeletonCards) return _cachedSkeletonCards
-  _cachedSkeletonCards = createSkeletonCards({ count }).toString()
-  return _cachedSkeletonCards
+  const key = `${count}`
+  if (!_cache.has(key)) _cache.set(key, createSkeletonCards({ count }).toString())
+  return _cache.get(key)
 }

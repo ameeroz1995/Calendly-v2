@@ -102,7 +102,7 @@ export function createCalendarConnections({ router, eventBus } = {}) {
           c.cid === cid ? { ...c, _syncing: true } : c
         )
         ctrl.render({ calendarConnections: connections })
-        setTimeout(() => {
+        ctrl.defer(() => {
           const updated = (ctrl.getState().calendarConnections || []).map(c =>
             c.cid === cid ? { ...c, _syncing: false, lastSync: new Date().toISOString() } : c
           )

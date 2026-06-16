@@ -109,7 +109,7 @@ export function createWebhooks({ router, eventBus } = {}) {
           w.sid === sid ? { ...w, _testing: true } : w
         )
         ctrl.render({ webhooks })
-        setTimeout(() => {
+        ctrl.defer(() => {
           const updated = (ctrl.getState().webhooks || []).map(w =>
             w.sid === sid ? { ...w, _testing: false, lastDelivery: new Date().toISOString(), lastResponseCode: 200, deliveryCount: (w.deliveryCount || 0) + 1 } : w
           )

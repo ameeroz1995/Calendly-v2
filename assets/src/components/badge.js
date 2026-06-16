@@ -6,7 +6,7 @@
  *   const b = createBadge({ variant: 'success', label: 'Confirmed' })
  *   parent uses: html`${b}`  // via toString() → data-cid
  *
- *   // Backward compat (returns toString() directly):
+ *   // Backward compat (returns inline HTML directly):
  *   html`${badge('success', 'Confirmed')}`
  */
 
@@ -43,15 +43,16 @@ export function createBadge({ variant = 'neutral', label = '' } = {}) {
   return ctrl
 }
 
+const _cache = new Map()
+
 /**
- * Backward-compatible shorthand — returns toString() result for inline use.
+ * Cached shorthand — returns toString() result for inline use.
  * @param {string} [variant='neutral']
  * @param {string} [label='']
  * @returns {string} HTML placeholder (data-cid)
  */
-let _cachedBadge = null
 export function badge(variant = 'neutral', label = '') {
-  if (_cachedBadge) return _cachedBadge
-  _cachedBadge = createBadge({ variant, label }).toString()
-  return _cachedBadge
+  const key = `${variant}|${label}`
+  if (!_cache.has(key)) _cache.set(key, createBadge({ variant, label }).toString())
+  return _cache.get(key)
 }

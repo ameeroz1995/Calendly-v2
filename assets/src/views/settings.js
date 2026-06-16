@@ -77,7 +77,7 @@ export function createSettings({ router, eventBus } = {}) {
         const name = document.getElementById('st-name')?.value || ''
         const tz = document.getElementById('st-tz')?.value || ''
         const user = { ...ctrl.getState().user, displayName: name, timezone: tz }
-        setTimeout(() => ctrl.render({ saving: false, user }), 500)
+        ctrl.defer(() => ctrl.render({ saving: false, user }), 500)
       },
       deleteAccount() {
         if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {

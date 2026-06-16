@@ -190,7 +190,7 @@ export function createBookingPageEditor({ router, eventBus } = {}) {
       },
       savePage() {
         ctrl.render({ saving: true, saveError: '' })
-        setTimeout(() => ctrl.render({ saving: false, saveError: '' }), 500)
+        ctrl.defer(() => ctrl.render({ saving: false, saveError: '' }), 500)
       },
       previewPage() {
         // Open preview in new tab or modal
