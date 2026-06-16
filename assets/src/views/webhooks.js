@@ -90,7 +90,7 @@ export function createWebhooks({ router, eventBus } = {}) {
       hideAddWebhook() { ctrl.render({ showAddWebhook: false }) },
       showAddWebhook() { ctrl.render({ showAddWebhook: true }) },
       subscribeWebhook() {
-        const url = (document.getElementById('wh-url')?.value || '').trim()
+        const url = (ctrl.$('wh-url')?.value || '').trim()
         if (!url) return
         const uid = ctrl.getState().user?.uid
         const sid = 'wh_' + Math.random().toString(36).slice(2, 8)
