@@ -1,0 +1,51 @@
+{
+  "feature": {
+    "id": "fix-router-guard",
+    "title": "Fix router * guard never triggered + go() updates _current before guard check",
+    "priority": "BLOCKER",
+    "scoreImpact": {
+      "Router Integration": "6/10 → 9/10",
+      "Framework Correctness": "5/10 → 7/10"
+    },
+    "estimatedEffort": "S (2-3 hours)",
+    "dependsOn": []
+  },
+  "tasks": [
+    {
+      "id": "rg-01",
+      "title": "Fix router go() to check wildcard * guard as fallback",
+      "description": "In router.js go(), guards are checked only against `resolved.pattern` (e.g., '/settings'). The `*` wildcard guard registered via `router.guard('*', fn)` is stored under key `'*'` but never matched because no route pattern compiles to `'*'`. Fix: after checking the specific pattern guard, also check the `*` global guard if it exists. Guard order: specific pattern first, then `*` fallback.",
+      "affectedFiles": [
+        "assets/src/router.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 1,
+      "acceptanceCriteria": [
+        "router.guard('*', fn) guard fires for EVERY route navigation",
+        "Specific pattern guard fires before * guard",
+        "If specific guard returns false, * guard NOT checked (first rejection wins)",
+        "If specific guard returns true or doesn't exist, * guard checked as fallback",
+        "Guard receives correct { from, to, params } at both levels",
+        "Existing guard in app.js:149 now correctly blocks unauthenticated navigation",
+        "Hash change events also trigger guard check (via go() called from hashchange handler)"
+      ]
+    },
+    {
+      "id": "rg-02",
+      "title": "Fix go() _current assignment before guard check",
+      "description": "In router.js go(), `_current = path` is set at line 102 BEFORE the guard check at line 96. But looking more carefully: the guard check at line 96 DOES happen before line 102. Actually re-reading the code: the guard check at lines 95-99 happens BEFORE `_current = path` at line 102. This is correct. The FRAMEWORK_PATTERNS.md line 292 claims `go() updates _current before guard check` — this is a documentation bug, not a code bug. Update FRAMEWORK_PATTERNS.md to remove incorrect claim. Add test to verify ordering.",
+      "affectedFiles": [
+        "assets/src/router.js"
+      ],
+      "dependencies": ["rg-01"],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "Verified: _current NOT updated when guard rejects navigation",
+        "guard rejection returns false without mutating _current or updating hash",
+        "FRAMEWORK_PATTERNS.md line 292 removed or corrected"
+      ]
+    }
+  ]
+}

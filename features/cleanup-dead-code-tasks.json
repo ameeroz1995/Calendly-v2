@@ -1,0 +1,74 @@
+{
+  "feature": {
+    "id": "cleanup-dead-code",
+    "title": "Remove duplicate/divergent framework files and fix morphdom checkbox bug",
+    "priority": "MAJOR",
+    "scoreImpact": {
+      "Framework Correctness": "5/10 → 7/10",
+      "Maintainability": "7/10 → 9/10",
+      "Consistency": "6/10 → 9/10"
+    },
+    "estimatedEffort": "S (1-2 hours)",
+    "dependsOn": []
+  },
+  "tasks": [
+    {
+      "id": "dc-01",
+      "title": "Delete root controller.js and router.js duplicate files",
+      "description": "Two copies of controller.js exist: root (428 lines, legacy API, checkbox morphdom bug) and assets/src/ (359 lines, clean API, correct morphdom). Two identical copies of router.js exist at root and assets/src/. The root copies are dead code — the app imports from assets/src/ via Vite. Delete root copies. If any tooling references root copies, update to reference assets/src/.",
+      "affectedFiles": [
+        "controller.js",
+        "router.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "Root controller.js DELETED",
+        "Root router.js DELETED",
+        "Vite build succeeds (only uses assets/src/ versions)",
+        "npm test passes (tests import from assets/src/)",
+        "No remaining references to root controller.js or router.js in any config"
+      ]
+    },
+    {
+      "id": "dc-02",
+      "title": "Fix morphdom checkbox bug in assets/src/controller.js (if present)",
+      "description": "Verify assets/src/controller.js has the CORRECT morphdom config: `toEl.checked = fromEl.checked` for checkboxes/radios, NOT `toEl.value = fromEl.checked`. The root controller.js has the bug. The assets version already appears correct at lines 93-96. This task is verification + fix if needed.",
+      "affectedFiles": [
+        "assets/src/controller.js"
+      ],
+      "dependencies": ["dc-01"],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "assets/src/controller.js morphOpts.onBeforeElUpdated correctly sets toEl.checked (not toEl.value) for checkbox/radio",
+        "Checkbox state preserved across render() calls",
+        "Radio button selection preserved across render() calls",
+        "Test: render with checkbox checked, re-render with different state, verify checkbox still checked"
+      ]
+    },
+    {
+      "id": "dc-03",
+      "title": "Fix dynamic import circular dependency workaround in services",
+      "description": "Multiple services use `await import('../firebase.js')` inside function bodies to avoid circular imports (firebase.js → services → firebase.js). This adds async overhead and obscures dependencies. Fix: extract shared DB helpers (dbRead, dbWrite, dbUpdate, dbRemove) into a separate `assets/src/db.js` module. Both firebase.js and services import from db.js. No circularity.",
+      "affectedFiles": [
+        "assets/src/firebase.js",
+        "assets/src/db.js",
+        "assets/src/services/auth.service.js",
+        "assets/src/services/booking.service.js"
+      ],
+      "dependencies": ["dc-01"],
+      "complexity": "M",
+      "estimatedHours": 2,
+      "acceptanceCriteria": [
+        "New file: assets/src/db.js exports dbRead, dbWrite, dbUpdate, dbRemove, dbTransaction, onValueSubscription",
+        "assets/src/firebase.js imports from db.js, re-exports + adds auth helpers",
+        "auth.service.js: static `import { dbRead, dbWrite } from '../db.js'` replaces dynamic imports",
+        "booking.service.js: static import replaces dynamic import on line 84",
+        "Zero `await import('../firebase.js')` in any service file",
+        "Vite build succeeds with no circular dependency warnings"
+      ]
+    }
+  ]
+}

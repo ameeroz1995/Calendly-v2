@@ -1,0 +1,135 @@
+{
+  "feature": {
+    "id": "architecture-controller-per-view",
+    "title": "Convert all 18 views from pure template functions to controller factories",
+    "priority": "BLOCKER",
+    "scoreImpact": {
+      "Controller-per-View": "0/10 → 10/10",
+      "Component Composition": "0/10 → 8/10"
+    },
+    "estimatedEffort": "XL (4-6 days)",
+    "dependsOn": ["architecture-controller-per-component"]
+  },
+  "tasks": [
+    {
+      "id": "cv-01",
+      "title": "Create view controller factory pattern template and convert first 6 simple views",
+      "description": "Convert the 6 simplest views (no sub-views, no complex state) to controller factories. Each exports `createXView({ router, eventBus })` returning `controller({ template, state, methods })`. State moves from god-controller to view-local state. Methods move from shell.register() to view controller methods. Views: login, compliance, api-keys, audit-log, resources, settings.",
+      "affectedFiles": [
+        "assets/src/views/login.js",
+        "assets/src/views/compliance.js",
+        "assets/src/views/api-keys.js",
+        "assets/src/views/audit-log.js",
+        "assets/src/views/resources.js",
+        "assets/src/views/settings.js"
+      ],
+      "dependencies": [],
+      "complexity": "L",
+      "estimatedHours": 12,
+      "acceptanceCriteria": [
+        "Each file exports `createXView({ router, eventBus })` not `function xView({ state, fn })`",
+        "Each factory returns `controller({ template, state, methods })`",
+        "State keys (loading, error, data arrays) moved from shell state to view-local state",
+        "View-local methods NOT registered on shell; registered via view controller's methods or register()",
+        "Template function signature unchanged: `({ state, fn }) => htmlString`",
+        "All existing esc() calls preserved",
+        "All existing id attributes preserved",
+        "No regression: views render identical HTML output"
+      ]
+    },
+    {
+      "id": "cv-02",
+      "title": "Convert 6 medium-complexity views to controller factories",
+      "description": "Convert views with moderate state and sub-interactions: dashboard, calendar-connections, event-types, availability, routing-forms, pools. These have list data, loading states, error states, and create/edit flows.",
+      "affectedFiles": [
+        "assets/src/views/dashboard.js",
+        "assets/src/views/calendar-connections.js",
+        "assets/src/views/event-types.js",
+        "assets/src/views/availability.js",
+        "assets/src/views/routing-forms.js",
+        "assets/src/views/pools.js"
+      ],
+      "dependencies": ["cv-01"],
+      "complexity": "L",
+      "estimatedHours": 14,
+      "acceptanceCriteria": [
+        "Each file exports `createXView({ router, eventBus })`",
+        "Each factory returns `controller({ template, state, methods })`",
+        "CRUD operations (create, update, delete) are view controller methods",
+        "Loading/error state managed locally in view controller",
+        "EventBus used for cross-view communication where needed",
+        "No direct access to other view controllers' state",
+        "All existing esc() calls preserved",
+        "No regression in view rendering"
+      ]
+    },
+    {
+      "id": "cv-03",
+      "title": "Convert 6 complex views to controller factories",
+      "description": "Convert the most complex views: booking (multi-step wizard with sessionStorage), booking-page-editor, workspace-detail (3-column with tasks/timer/messages), workspaces (list), webhooks, contacts, contact-detail, time-tracking. These have sub-states, timers, forms, and real-time interactions.",
+      "affectedFiles": [
+        "assets/src/views/booking.js",
+        "assets/src/views/booking-page-editor.js",
+        "assets/src/views/workspace-detail.js",
+        "assets/src/views/workspaces.js",
+        "assets/src/views/webhooks.js",
+        "assets/src/views/contacts.js",
+        "assets/src/views/contact-detail.js",
+        "assets/src/views/time-tracking.js"
+      ],
+      "dependencies": ["cv-01", "cv-02"],
+      "complexity": "XL",
+      "estimatedHours": 18,
+      "acceptanceCriteria": [
+        "Each file exports `createXView({ router, eventBus })`",
+        "Each factory returns `controller({ template, state, methods })`",
+        "Booking wizard: sessionStorage persistence moved to view controller methods",
+        "Workspace detail: timer logic uses ctrl.defer() for tick, ctrl.destroy() cleans up",
+        "Webhooks: add/edit form state is view-local, not shell state",
+        "Contacts: search debounce uses view controller method with 300ms debounce",
+        "All XSS onclick fixes applied (esc() on DB-sourced values)",
+        "All existing esc() calls preserved",
+        "No regression in any view behavior"
+      ]
+    },
+    {
+      "id": "cv-04",
+      "title": "Add destroy chain to all view controllers and verify lifecycle",
+      "description": "Ensure every view controller factory registers cleanup: timeouts via ctrl.defer(), subscriptions via ctrl.unsub(), event listeners via ctrl.trigger(). Verify ctrl.destroy() is called by shell on route change. Add Symbol.dispose support.",
+      "affectedFiles": [
+        "assets/src/views/login.js",
+        "assets/src/views/dashboard.js",
+        "assets/src/views/calendar-connections.js",
+        "assets/src/views/event-types.js",
+        "assets/src/views/booking-page-editor.js",
+        "assets/src/views/availability.js",
+        "assets/src/views/booking.js",
+        "assets/src/views/routing-forms.js",
+        "assets/src/views/pools.js",
+        "assets/src/views/workspaces.js",
+        "assets/src/views/workspace-detail.js",
+        "assets/src/views/time-tracking.js",
+        "assets/src/views/compliance.js",
+        "assets/src/views/webhooks.js",
+        "assets/src/views/api-keys.js",
+        "assets/src/views/settings.js",
+        "assets/src/views/contacts.js",
+        "assets/src/views/contact-detail.js",
+        "assets/src/views/resources.js",
+        "assets/src/views/audit-log.js"
+      ],
+      "dependencies": ["cv-01", "cv-02", "cv-03"],
+      "complexity": "M",
+      "estimatedHours": 6,
+      "acceptanceCriteria": [
+        "Every view controller's destroy() clears all ctrl.defer() timeouts",
+        "Every view controller's destroy() runs all ctrl.unsub() callbacks",
+        "Every view controller's destroy() calls unbindAllTriggers (framework auto-handles)",
+        "No setTimeout/setInterval outside ctrl.defer()",
+        "No addEventListener outside ctrl.trigger()",
+        "Symbol.dispose auto-wired (framework handles this)",
+        "Memory leak check: create/destroy view 10 times, no growth in window.__app or window.__el"
+      ]
+    }
+  ]
+}

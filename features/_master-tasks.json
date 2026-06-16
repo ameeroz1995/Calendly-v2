@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "project": "Calendly v2",
+    "generated": "2026-06-16",
+    "source": "Combined framework-codereviewer + code-reviewer evaluations",
+    "totalTasks": 38,
+    "featureAreas": 9,
+    "scoreTarget": {
+      "frameworkCodereviewer": "68% → 90%+",
+      "codeReviewer": "65% → 90%+"
+    }
+  },
+  "featureAreas": [
+    {
+      "id": "architecture-controller-per-view",
+      "file": "architecture-controller-per-view-tasks.json",
+      "title": "Convert all 18 views to controller factories",
+      "taskCount": 4,
+      "priority": "BLOCKER",
+      "estimatedEffort": "XL (4-6 days)"
+    },
+    {
+      "id": "architecture-controller-per-component",
+      "file": "architecture-controller-per-component-tasks.json",
+      "title": "Convert all 18 components to controller factories",
+      "taskCount": 4,
+      "priority": "BLOCKER",
+      "estimatedEffort": "XL (4-6 days)"
+    },
+    {
+      "id": "architecture-shell-rewrite",
+      "file": "architecture-shell-rewrite-tasks.json",
+      "title": "Rewrite shell controller for child controller composition",
+      "taskCount": 3,
+      "priority": "BLOCKER",
+      "estimatedEffort": "L (2-3 days)",
+      "dependsOn": ["architecture-controller-per-view", "architecture-controller-per-component"]
+    },
+    {
+      "id": "security-xss-onclick",
+      "file": "security-xss-onclick-tasks.json",
+      "title": "Fix XSS vulnerabilities in onclick handlers",
+      "taskCount": 5,
+      "priority": "BLOCKER",
+      "estimatedEffort": "S (2-4 hours)"
+    },
+    {
+      "id": "security-database-rules",
+      "file": "security-database-rules-tasks.json",
+      "title": "Fix overly permissive Firebase RTDB security rules",
+      "taskCount": 4,
+      "priority": "BLOCKER",
+      "estimatedEffort": "M (1 day)"
+    },
+    {
+      "id": "fix-router-guard",
+      "file": "fix-router-guard-tasks.json",
+      "title": "Fix router * guard and go()-before-guard race condition",
+      "taskCount": 2,
+      "priority": "BLOCKER",
+      "estimatedEffort": "S (2-3 hours)"
+    },
+    {
+      "id": "fix-cloud-functions",
+      "file": "fix-cloud-functions-tasks.json",
+      "title": "Fix Cloud Function bugs (dispatch-webhook, enforce-timer-limit, oauth)",
+      "taskCount": 5,
+      "priority": "BLOCKER",
+      "estimatedEffort": "M (1-2 days)"
+    },
+    {
+      "id": "fix-booking-service",
+      "file": "fix-booking-service-tasks.json",
+      "title": "Fix booking service correctness, reliability, and performance",
+      "taskCount": 4,
+      "priority": "MAJOR",
+      "estimatedEffort": "M (1 day)"
+    },
+    {
+      "id": "cleanup-dead-code",
+      "file": "cleanup-dead-code-tasks.json",
+      "title": "Remove duplicate/divergent framework files and fix morphdom bug",
+      "taskCount": 3,
+      "priority": "MAJOR",
+      "estimatedEffort": "S (1-2 hours)"
+    }
+  ],
+  "executionOrder": [
+    "cleanup-dead-code",
+    "security-xss-onclick",
+    "security-database-rules",
+    "fix-router-guard",
+    "fix-cloud-functions",
+    "fix-booking-service",
+    "architecture-controller-per-component",
+    "architecture-controller-per-view",
+    "architecture-shell-rewrite"
+  ],
+  "rationale": "Fixes that don't change architecture come first (cleanup, security, router, CFs, services). Then component controllers (no deps), then view controllers (depend on component controllers), then shell rewrite (depends on everything else)."
+}

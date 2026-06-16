@@ -1,0 +1,16 @@
+{
+  "type": "module",
+  "name": "calendly-v2",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise scheduling & lifecycle management platform",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test assets/src/**/*.test.js"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

@@ -1,0 +1,1607 @@
+{
+  "project": "Calendly v2",
+  "description": "Internal enterprise scheduling & lifecycle management platform",
+  "stack": [
+    "Vanilla JS ES6+",
+    "Firebase RTDB",
+    "Vite bundler",
+    "morphdom",
+    "controller.js",
+    "router.js",
+    "Tailwind CSS v3"
+  ],
+  "design": {
+    "palette": "Linear-inspired dark",
+    "colors": {
+      "bg": "#080710",
+      "surface": "#12111A",
+      "surfaceRaised": "#1A1923",
+      "accent": "#7047EB",
+      "textPrimary": "#F4F3F6",
+      "textMuted": "#8A8993",
+      "border": "#262431",
+      "success": "#00C48C",
+      "danger": "#FF4A5A",
+      "warning": "#F5A623"
+    },
+    "fonts": {
+      "heading": "Geist",
+      "body": "gilroy"
+    },
+    "grid": "4px",
+    "radius": "10px"
+  },
+  "architecture": {
+    "pattern": "Modular Frontend Monolith + Service Layer + Thin Cloud Functions",
+    "bundler": "Vite (zero-config) \u2014 src/* \u2192 dist/bundle.js",
+    "eventBus": "Centralized EventBus in messages/ \u2014 named channels, logged dispatch, validated cleanup",
+    "childRule": "Parent controllers MUST NOT own child DOM. Children self-mount into data-cid placeholders. Parents render only their own DOM."
+  },
+  "created": "2026-06-15",
+  "updated": "2026-06-16",
+  "totalFiles": 59,
+  "phases": [
+    {
+      "id": "phase-0",
+      "name": "Foundation Shell",
+      "description": "App loads in browser, Firebase connects, auth works, router navigates. All subsequent phases depend on this.",
+      "tasks": [
+        {
+          "id": "task-001",
+          "title": "index.html \u2014 Shell Document",
+          "file": "index.html",
+          "status": "completed",
+          "description": "Shell: CSP meta, Tailwind CDN, Firebase SDKs v10, morphdom CDN, font loading (Geist + gilroy), import map, root <div id='app'>, dark theme CSS, sidebar + topbar + mobile nav + content area + toast container + hidden page templates + navigation scripts",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Page loads without console errors",
+            "Tailwind classes render correctly",
+            "Dark palette applied: bg #080710, surface #12111A, accent #7047EB, text #F4F3F6",
+            "Firebase SDK accessible at window._firebase",
+            "morphdom accessible at window.morphdom",
+            "Sidebar visible on desktop (\u22651024px), hamburger drawer on tablet, overlay on mobile",
+            "Mobile bottom nav visible at \u2264767px",
+            "All 16 routes navigate and swap page content",
+            "Public booking route renders full-screen (no sidebar/topbar)",
+            "No horizontal scroll at 320px",
+            "Touch targets \u226544px",
+            "CSP meta tag present"
+          ]
+        },
+        {
+          "id": "task-002",
+          "title": "firebase.js \u2014 Firebase Init & Wrappers",
+          "file": "assets/src/firebase.js",
+          "status": "completed",
+          "description": "Initialize Firebase app + auth + RTDB. Export wrapped helpers with timeout (no app-level retry \u2014 Firebase SDK handles it). Use AbortController for cancellation.",
+          "dependsOn": [
+            "task-001"
+          ],
+          "acceptanceCriteria": [
+            "Firebase app initializes without error",
+            "auth and rtdb exports are non-null",
+            "dbRef(path) returns valid Reference",
+            "dbRead returns AsyncResult with 10s AbortController timeout",
+            "dbWrite sets data and returns AsyncResult",
+            "dbTransaction wraps runTransaction with max-wait guard",
+            "onValueSubscription returns unsubscribe function",
+            "NO application-level retry for Firebase ops"
+          ],
+          "rtdbPaths": []
+        },
+        {
+          "id": "task-003",
+          "title": "messages/catalog.js \u2014 EventBus & Message Constants",
+          "file": "assets/src/messages/catalog.js",
+          "status": "completed",
+          "description": "Message constants: MSG.AUTH_CHANGED, MSG.BOOKING_CREATED, MSG.SLOT_SELECTED, MSG.DATE_SELECTED, MSG.SHOW_TOAST, MSG.SEARCH_CHANGED, MSG.ROW_CLICKED, MSG.ROUTE_CHANGING, MSG.TIMER_TICK, etc. Centralized EventBus with named channels, logged dispatch, validated subscriber cleanup.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "All message constants defined as frozen object",
+            "EventBus.emit(channel, data) dispatches to all subscribers",
+            "EventBus.on(channel, handler) returns unsubscribe function",
+            "EventBus logs all messages to console.debug in dev mode",
+            "Duplicate subscriber prevention",
+            "Route-generation counter for stale callback rejection"
+          ]
+        },
+        {
+          "id": "task-004",
+          "title": "app.js \u2014 Bootstrap Controller + Router + Wireup",
+          "file": "assets/src/app.js",
+          "status": "completed",
+          "description": "Create main app controller. Wire createRouter with all routes. router.onChange calls route loaders before render. Auth state listener. Subscription cleanup on route change. Mount to DOM. All components created and wired via EventBus.",
+          "dependsOn": [
+            "task-002",
+            "task-003"
+          ],
+          "acceptanceCriteria": [
+            "Hash navigation changes route state",
+            "Route loaders fetch data before render",
+            "Auth state change triggers re-render",
+            "Route guard blocks unauthenticated access (except /login, /book/*)",
+            "activeSubscriptions array cleaned on route change",
+            "Route-generation counter prevents stale callbacks",
+            "EventBus wiring: all components register on init",
+            "No console errors"
+          ]
+        },
+        {
+          "id": "task-005",
+          "title": "utils/Result.js \u2014 Fluent Error Handling",
+          "file": "assets/src/utils/Result.js",
+          "status": "completed",
+          "description": "Implement Result (sync) + AsyncResult (async) fluent classes: .from(), .ok(), .err(), .map(), .flatMap(), .mapErr(), .tap(), .tapErr(), .recover(), .unwrap(), .unwrapOr(), .unwrapOrThrow(). Catches sync throws + async rejections.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Result.from(() => 42).unwrap() returns [42, null]",
+            "Result.from(() => { throw Error('fail') }).unwrap() returns [null, Error]",
+            "AsyncResult supports .map() chaining with async mappers",
+            ".tapErr() logs error without breaking chain",
+            ".unwrapOr('fallback') returns fallback on error",
+            ".recover() transforms error back to success",
+            "No unhandled promise rejections"
+          ]
+        },
+        {
+          "id": "task-006",
+          "title": "utils/icons.js \u2014 SVG Icon Templates",
+          "file": "assets/src/utils/icons.js",
+          "status": "completed",
+          "description": "SVG icon templates as html literals: icon.search, icon.check, icon.x, icon.chevron, icon.edit, icon.trash, icon.calendar, icon.clock, icon.users, icon.link, icon.download, icon.settings, icon.shield, icon.webhook, icon.key, icon.google, icon.microsoft, icon.spinner, icon.alert, icon.eye, icon.eyeOff, icon.copy, icon.plus, icon.dashboard, icon.chart, icon.mail, icon.bell, icon.lock, icon.globe",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "All icons render as inline SVG with currentColor stroke",
+            "Icons are 20x20 or 24x24 viewBox",
+            "No external icon dependencies"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-1",
+      "name": "Utilities",
+      "description": "Datetime math, crypto, input validation. Used by all services and views. Zero Firebase dependencies.",
+      "tasks": [
+        {
+          "id": "task-007",
+          "title": "utils/datetime.js \u2014 Date/Time Utilities",
+          "file": "assets/src/utils/datetime.js",
+          "status": "completed",
+          "description": "Slot generation from working hours + duration + buffer (all internal math in UTC for DST safety). Date formatting. Timezone helpers. Slot math: addMinutes, overlap detection, date range iteration, month grid.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "generateSlots(9-5, 30min, 15min buffer) produces correct non-overlapping slots",
+            "DST spring-forward: skipped hour excluded",
+            "DST fall-back: uses first occurrence",
+            "Leap year Feb 29 handled correctly",
+            "formatDate handles timezone offset",
+            "getMonthGrid(year, month) returns 6\u00d77 array"
+          ]
+        },
+        {
+          "id": "task-008",
+          "title": "utils/crypto.js \u2014 Web Crypto Wrappers",
+          "file": "assets/src/utils/crypto.js",
+          "status": "completed",
+          "description": "encryptAES256GCM, decryptAES256GCM, hashSHA256, generateRandomBytes, generateApiKey, hashApiKey (PBKDF2, 100K iterations via crypto.subtle). API key prefix: cal_live_/cal_dev_.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "encryptAES256GCM + decryptAES256GCM round-trips correctly",
+            "hashApiKey uses PBKDF2 with 100K iterations",
+            "generateApiKey produces cal_live_ prefix + 32 random chars",
+            "All operations use crypto.subtle (Web Crypto API)",
+            "No external crypto libraries needed"
+          ]
+        },
+        {
+          "id": "task-009",
+          "title": "utils/validators.js \u2014 Input Validation",
+          "file": "assets/src/utils/validators.js",
+          "status": "completed",
+          "description": "Pure validation functions returning {valid, errors: [{field, message}]}. validateEmail, validateUrl, validateRequired, validateMinLength, validateMaxLength, validateEventType, validateBookingForm, validateTimeFormat, validateWebhookUrl. Max lengths: name=200, email=254, custom=500.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "validateEmail('') returns valid:false with error",
+            "validateEmail('user@domain.com') returns valid:true",
+            "validateEventType catches missing title, invalid duration, invalid URL",
+            "validateBookingForm handles dynamic required fields from event type config",
+            "All validators are pure functions (no side effects, no DOM access)",
+            "Unicode normalized to NFC in validate functions that accept text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Shared Components",
+      "description": "Reusable UI components. Stateful components return a ctrl (controller instance). Pure presentational functions return html directly. All follow export function ComponentName() { ... return ctrl } pattern.",
+      "tasks": [
+        {
+          "id": "task-010",
+          "title": "components/badge.js \u2014 Status Badge",
+          "file": "assets/src/components/badge.js",
+          "status": "completed",
+          "type": "pure",
+          "description": "badge(status, label) \u2192 colored status badge. Statuses: success (#00C48C), warning (#F5A623), danger (#FF4A5A), info (#7047EB), neutral (#8A8993).",
+          "dependsOn": [
+            "task-006"
+          ],
+          "acceptanceCriteria": [
+            "badge('success', 'Confirmed') returns green badge",
+            "badge('danger', 'Cancelled') returns red badge"
+          ]
+        },
+        {
+          "id": "task-011",
+          "title": "components/status-dot.js \u2014 Status Indicator",
+          "file": "assets/src/components/status-dot.js",
+          "status": "completed",
+          "type": "pure",
+          "description": "statusDot(color) \u2192 8px circle. Colors: green (#00C48C), yellow (#F5A623), red (#FF4A5A), gray (#8A8993).",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "statusDot('green') returns green circle",
+            "Output is inline-block 8\u00d78px"
+          ]
+        },
+        {
+          "id": "task-012",
+          "title": "components/spinner.js \u2014 Loading Spinner",
+          "file": "assets/src/components/spinner.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "Spinner() \u2192 loading spinner. Uses stringComponent. ctrl.show() / ctrl.hide(). Onboarded with id='spinner'.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Spinner().show() displays spinner",
+            "Spinner().hide() hides it",
+            "Respects prefers-reduced-motion"
+          ]
+        },
+        {
+          "id": "task-013",
+          "title": "components/skeleton-card.js \u2014 Card Skeleton",
+          "file": "assets/src/components/skeleton-card.js",
+          "status": "completed",
+          "type": "pure",
+          "description": "skeletonCards(count) \u2192 N card skeletons with pulse animation. Used by dashboard, event types, calendar connections views.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "skeletonCards(3) renders 3 pulse cards",
+            "Respects prefers-reduced-motion"
+          ]
+        },
+        {
+          "id": "task-014",
+          "title": "components/skeleton-table.js \u2014 Table Skeleton",
+          "file": "assets/src/components/skeleton-table.js",
+          "status": "completed",
+          "type": "pure",
+          "description": "skeletonTable(rows) \u2192 table row skeletons with pulse animation. Used by billing, contacts views.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "skeletonTable(5) renders 5 pulse rows with column structure"
+          ]
+        },
+        {
+          "id": "task-015",
+          "title": "components/empty-state.js \u2014 Empty State",
+          "file": "assets/src/components/empty-state.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "EmptyState() \u2192 icon + title + description + optional action button. ctrl.configure({ icon, title, desc, actionLabel, onAction }). ctrl.show() / ctrl.hide().",
+          "dependsOn": [
+            "task-006"
+          ],
+          "acceptanceCriteria": [
+            "Shows icon + title + description",
+            "Action button optional",
+            "Can be configured and re-shown"
+          ]
+        },
+        {
+          "id": "task-016",
+          "title": "components/toast.js \u2014 Toast Notifications",
+          "file": "assets/src/components/toast.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "Toast() \u2192 floating notifications. ctrl.success(msg), ctrl.error(msg), ctrl.warning(msg). Auto-dismiss 4s. Listens to EventBus MSG.SHOW_TOAST.",
+          "dependsOn": [
+            "task-003"
+          ],
+          "acceptanceCriteria": [
+            "Toast().success('msg') shows and auto-dismisses",
+            "Toast().error('msg') shows red-left-border",
+            "Multiple toasts stack vertically",
+            "Click dismisses early",
+            "Listens to MSG.SHOW_TOAST"
+          ]
+        },
+        {
+          "id": "task-017",
+          "title": "components/modal.js \u2014 Modal Dialog",
+          "file": "assets/src/components/modal.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "Modal() \u2192 centered dialog. ctrl.configure({ title, bodyHtml, footerHtml, onClose }). ctrl.open() / ctrl.close(). Closes on backdrop click + Escape. Traps focus. Uses closure variable _onClose, not state.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Modal().open() shows backdrop + dialog",
+            "Closes on backdrop click + Escape",
+            "onClose callback fires on close",
+            "Focus trapped inside modal while open"
+          ]
+        },
+        {
+          "id": "task-018",
+          "title": "components/confirm-dialog.js \u2014 Confirmation Dialog",
+          "file": "assets/src/components/confirm-dialog.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "ConfirmDialog() \u2192 'Are you sure?' modal. ctrl.confirm({ title, message, confirmLabel, confirmStyle:'danger'|'primary', onConfirm, onCancel }). Returns promise resolved with true/false.",
+          "dependsOn": [
+            "task-017"
+          ],
+          "acceptanceCriteria": [
+            "ConfirmDialog().confirm({...}) returns promise",
+            "Confirm resolves true, Cancel resolves false",
+            "Danger style uses red button"
+          ]
+        },
+        {
+          "id": "task-019",
+          "title": "components/tab-bar.js \u2014 Tab Navigation",
+          "file": "assets/src/components/tab-bar.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "TabBar({ tabs }) \u2192 horizontal tab navigation. tabs: [{id, label}]. ctrl.getActiveTab() returns current tab id. Active tab underlined with accent color.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "TabBar({tabs:[...]}) renders tabs",
+            "Clicking tab sets active and returns id",
+            "Accessible via keyboard (arrow keys)"
+          ]
+        },
+        {
+          "id": "task-020",
+          "title": "components/search-input.js \u2014 Debounced Search",
+          "file": "assets/src/components/search-input.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "SearchInput({ placeholder, debounceMs: 300 }) \u2192 search field. Emits MSG.SEARCH_CHANGED via EventBus with query string. ctrl.clear() / ctrl.getValue().",
+          "dependsOn": [
+            "task-003"
+          ],
+          "acceptanceCriteria": [
+            "SearchInput() renders input with placeholder",
+            "Typing emits MSG.SEARCH_CHANGED after 300ms debounce",
+            "ctrl.clear() resets input and emits empty query"
+          ]
+        },
+        {
+          "id": "task-021",
+          "title": "components/pagination.js \u2014 Page Navigation",
+          "file": "assets/src/components/pagination.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "Pagination() \u2192 page buttons. ctrl.setTotalPages(n). Exposes ctrl.goPage(p), ctrl.nextPage(), ctrl.prevPage(). Shows prev/next + page numbers with ellipsis for large ranges.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "Pagination().setTotalPages(5) renders 5 page buttons",
+            "Active page highlighted with accent bg",
+            "ctrl.goPage(3) triggers state update",
+            "Ellipsis for >7 pages"
+          ]
+        },
+        {
+          "id": "task-022",
+          "title": "components/data-table.js \u2014 Sortable Table",
+          "file": "assets/src/components/data-table.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "DataTable() \u2192 sortable data table. ctrl.setColumns(cols), ctrl.setData(rows). Handles sort on column header click. Emits MSG.ROW_CLICKED via EventBus. Data in closure variables, not state.",
+          "dependsOn": [
+            "task-003"
+          ],
+          "acceptanceCriteria": [
+            "DataTable().setColumns([...]).setData([...]) renders table",
+            "Column header click sorts ascending/descending",
+            "Sort indicator arrow shown on active column",
+            "Row click emits MSG.ROW_CLICKED with row data"
+          ]
+        },
+        {
+          "id": "task-023",
+          "title": "components/date-picker.js \u2014 Date Selector",
+          "file": "assets/src/components/date-picker.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "DatePicker() \u2192 date carousel/calendar. ctrl.getSelectedDate(). Shows next 14 days (configurable). Disabled dates grayed out. Emits MSG.DATE_SELECTED via EventBus.",
+          "dependsOn": [
+            "task-003",
+            "task-007"
+          ],
+          "acceptanceCriteria": [
+            "DatePicker() renders next 14 days",
+            "Clicking date emits MSG.DATE_SELECTED",
+            "Dates with no availability are grayed and disabled",
+            "ctrl.getSelectedDate() returns ISO date string"
+          ]
+        },
+        {
+          "id": "task-024",
+          "title": "components/time-slot-grid.js \u2014 Time Slot Grid",
+          "file": "assets/src/components/time-slot-grid.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "TimeSlotGrid() \u2192 grid of clickable time buttons. ctrl.setSlots(slots), ctrl.getSelectedSlot(). Emits MSG.SLOT_SELECTED via EventBus. Shows timezone label. Taken slots disabled.",
+          "dependsOn": [
+            "task-003",
+            "task-007"
+          ],
+          "acceptanceCriteria": [
+            "TimeSlotGrid() renders slot buttons in grid",
+            "Clicking slot highlights with accent bg and emits MSG.SLOT_SELECTED",
+            "ctrl.setSlots() updates grid",
+            "Taken slots shown as disabled"
+          ]
+        },
+        {
+          "id": "task-025",
+          "title": "components/form-field.js \u2014 Dynamic Form Field",
+          "file": "assets/src/components/form-field.js",
+          "status": "completed",
+          "type": "pure",
+          "description": "formField(field, value) \u2192 renders any field type (text, textarea, select, checkbox, radio) with label + error message. Delegates to html template. Supports required indicator.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "formField({type:'text',label:'Name'}, '') renders labeled input",
+            "formField({type:'select',options:[...]}) renders select",
+            "Error state shows red error message below field",
+            "Required fields show asterisk"
+          ]
+        },
+        {
+          "id": "task-026",
+          "title": "components/copy-button.js \u2014 Copy to Clipboard",
+          "file": "assets/src/components/copy-button.js",
+          "status": "completed",
+          "type": "stateful",
+          "description": "CopyButton({ text }) \u2192 button that copies text to clipboard, shows 'Copied!' feedback for 2s with success color. Uses navigator.clipboard API.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "CopyButton({text:'hello'}) renders copy button",
+            "Click copies text and shows 'Copied!'",
+            "Reverts to original label after 2s"
+          ]
+        },
+        {
+          "id": "task-027",
+          "title": "components/user-avatar.js \u2014 User Avatar",
+          "file": "assets/src/components/user-avatar.js",
+          "status": "completed",
+          "type": "pure",
+          "description": "userAvatar(user, size) \u2192 circle with initials (or photo if available). Sizes: sm=32px, md=40px, lg=64px. Initials extracted from user.name, fallback to '?'.",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "userAvatar({name:'Amir Zaidan'}, 'md') renders 'AZ' in 40px circle",
+            "userAvatar(null) renders '?' fallback",
+            "Photo URL renders background-image if provided"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "Services Layer",
+      "description": "All Firebase I/O. Every function returns AsyncResult. No view code. No app-level retry for Firebase ops (SDK handles it). Timeout with AbortController. Retry only for non-Firebase external calls.",
+      "tasks": [
+        {
+          "id": "task-028",
+          "title": "services/auth.service.js \u2014 Authentication",
+          "file": "assets/src/services/auth.service.js",
+          "status": "completed",
+          "description": "Google OAuth via Firebase popup with redirect fallback. signOut. getCurrentUser. createUserProfile on first login. getUserProfile. onAuthChange \u2192 returns unsub. Emits MSG.AUTH_CHANGED via EventBus.",
+          "dependsOn": [
+            "task-002",
+            "task-003",
+            "task-005"
+          ],
+          "acceptanceCriteria": [
+            "signInWithGoogle() opens popup, returns AsyncResult with user",
+            "Popup blocked \u2192 falls back to signInWithRedirect",
+            "First sign-in creates user profile in /users/{uid}",
+            "signOut clears auth state",
+            "onAuthChange fires on login/logout and emits MSG.AUTH_CHANGED",
+            "Free tier defaults for new users"
+          ],
+          "rtdbPaths": [
+            "/users/{uid}"
+          ]
+        },
+        {
+          "id": "task-029",
+          "title": "services/calendar.service.js \u2014 Calendar Connections",
+          "file": "assets/src/services/calendar.service.js",
+          "status": "completed",
+          "description": "OAuth flow for Google + Microsoft with CSRF state param. Token exchange via Cloud Function. List/disconnect calendars. Sync external busy intervals \u2192 /availability. Push confirmed bookings back to external calendars. MAX_CONNECTIONS=10 enforced.",
+          "dependsOn": [
+            "task-002",
+            "task-005",
+            "task-007",
+            "task-008"
+          ],
+          "acceptanceCriteria": [
+            "connectCalendar initiates OAuth with state param",
+            "OAuth callback handled via Cloud Function (tokens never in client code)",
+            "listConnections returns array with provider, email, lastSync, status",
+            "disconnectCalendar removes tokens + synced slots",
+            "syncAvailability merges external busy intervals, marks overlapping slots",
+            "pushBookingToExternalCalendars writes confirmed bookings back",
+            "refreshTokens called 5min before expiry, retries once (non-Firebase retry OK)",
+            "MAX_CONNECTIONS=10 enforced"
+          ],
+          "rtdbPaths": [
+            "/calendar_connections/{uid}/{cid}",
+            "/availability/{uid}/{date}"
+          ]
+        },
+        {
+          "id": "task-030",
+          "title": "services/event-type.service.js \u2014 Event Type CRUD",
+          "file": "assets/src/services/event-type.service.js",
+          "status": "completed",
+          "description": "CRUD event types. Soft delete (active=false). Free tier max 1. Fields: title, duration, location (zoom/meet/teams/none), requiresPhi, color, active, visibility (public/hidden), bookingRules, formFields. NO price/currency fields.",
+          "dependsOn": [
+            "task-002",
+            "task-005",
+            "task-009"
+          ],
+          "acceptanceCriteria": [
+            "createEventType writes to /event_types/{uid}/{eid}",
+            "listEventTypes filters by uid, excludes hidden from public queries",
+            "updateEventType merges partial data",
+            "deleteEventType sets active=false (soft delete)",
+            "Free tier: second create returns error",
+            "No price/currency in schema"
+          ],
+          "rtdbPaths": [
+            "/event_types/{uid}/{eid}"
+          ]
+        },
+        {
+          "id": "task-031",
+          "title": "services/booking.service.js \u2014 Atomic Slot Booking",
+          "file": "assets/src/services/booking.service.js",
+          "status": "completed",
+          "description": "Atomic slot booking via runTransaction (compare-and-swap). Creates booking + workspace atomically. Cancel/reschedule. Split PHI from non-PHI data when requiresPhi. Pre-submit check: verify event type still active. Single-use link support.",
+          "dependsOn": [
+            "task-002",
+            "task-005",
+            "task-007"
+          ],
+          "acceptanceCriteria": [
+            "bookSlot uses runTransaction \u2014 concurrent bookings: one succeeds, others get 'slot taken'",
+            "Successful booking creates /bookings/{bid} + /workspaces/{wid} atomically",
+            "cancelBooking sets slot back to 'free', booking status to 'cancelled'",
+            "Pre-submit check verifies event type exists + active",
+            "requiresPhi event types split form data: non-PHI \u2192 /bookings, PHI \u2192 /secure_phi",
+            "Single-use tokens expire after booking"
+          ],
+          "rtdbPaths": [
+            "/availability/{hostId}/{date}/{slotId}",
+            "/bookings/{bid}",
+            "/workspaces/{wid}",
+            "/secure_phi/{bid}"
+          ]
+        },
+        {
+          "id": "task-032",
+          "title": "services/availability.service.js \u2014 Availability",
+          "file": "assets/src/services/availability.service.js",
+          "status": "completed",
+          "description": "Set working hours per day. Generate slots from working hours + duration + buffer. Store to /availability. Query available slots. Set booking rules (max/day, min notice, max advance, buffer). Mark slots as external_busy for calendar sync.",
+          "dependsOn": [
+            "task-002",
+            "task-005",
+            "task-007"
+          ],
+          "acceptanceCriteria": [
+            "setWorkingHours stores per-day schedule to /booking_rules/{uid}/workingHours",
+            "generateAndStoreSlots creates slot nodes for date with status:'free'",
+            "getAvailableSlots returns only free slots in date range",
+            "setBookingRules updates maxPerDay, minNoticeHours, maxAdvanceDays, bufferMinutes",
+            "Slot generation respects buffer minutes between slots",
+            "markSlotBusy sets status:'external_busy' for calendar sync conflicts"
+          ],
+          "rtdbPaths": [
+            "/availability/{uid}/{date}/{sid}",
+            "/booking_rules/{uid}"
+          ]
+        },
+        {
+          "id": "task-033",
+          "title": "services/routing.service.js \u2014 Routing & Round-Robin",
+          "file": "assets/src/services/routing.service.js",
+          "status": "completed",
+          "description": "CRUD routing forms. Evaluate answers against rules \u2192 target pool. Round-robin: atomic counter increment + availability check + fallback chain by priority. Collective: all members free check. Pool member management with priority weights. Weighted round-robin (higher priority = more assignments).",
+          "dependsOn": [
+            "task-002",
+            "task-005",
+            "task-007",
+            "task-032"
+          ],
+          "acceptanceCriteria": [
+            "evaluateRouting maps form answers to target pool based on rules",
+            "roundRobinAssign: atomic counter, returns host with lowest count, weighted by priority",
+            "roundRobinAssign fallback: if assignee busy, tries next member by priority order",
+            "collectiveCheck: finds slots where ALL pool members are simultaneously free",
+            "Pool member add/remove updates pool immediately",
+            "Empty pool returns error with fallback to pool owner",
+            "Collective pre-aggregation via Cloud Function for pools >10 members"
+          ],
+          "rtdbPaths": [
+            "/routing_forms/{fid}",
+            "/routing_pools/{pid}",
+            "/routing_counters/{pid}/{uid}"
+          ]
+        },
+        {
+          "id": "task-034",
+          "title": "services/workspace.service.js \u2014 Client Portal",
+          "file": "assets/src/services/workspace.service.js",
+          "status": "completed",
+          "description": "Create workspace on booking. CRUD tasks with completion toggle. Timer: start/stop with mode (prep/session/follow-up). Elapsed via Date.now() delta. Messages. File metadata. Time tracking aggregation (no invoicing \u2014 internal tool). Timer auto-stop enforcement via Cloud Function.",
+          "dependsOn": [
+            "task-002",
+            "task-005"
+          ],
+          "acceptanceCriteria": [
+            "createWorkspace initializes with empty tasks, messages, timers",
+            "addTask creates task with completed:false; toggleTask flips atomically",
+            "startTimer(mode) records start timestamp; stopTimer calculates elapsed, logs to timers/log",
+            "Timer uses Date.now() delta, not interval counting",
+            "Client warning at 8h; Cloud Function auto-stops at 8h server-side",
+            "getElapsed shows all three modes separately",
+            "No invoice generation \u2014 time tracking only"
+          ],
+          "rtdbPaths": [
+            "/workspaces/{wid}"
+          ]
+        },
+        {
+          "id": "task-035",
+          "title": "services/notification.service.js \u2014 Notifications",
+          "file": "assets/src/services/notification.service.js",
+          "status": "completed",
+          "description": "sendBookingConfirmation, sendCancellationNotice, sendReminder. maskPHIForNotification replaces patient name with 'Client ID #xxx'. All calls go to Cloud Function HTTP endpoint /api/notifications/send. SMS reminders via Twilio (Phase 7+).",
+          "dependsOn": [
+            "task-002",
+            "task-005"
+          ],
+          "acceptanceCriteria": [
+            "sendBookingConfirmation sends POST to Cloud Function with booking data",
+            "sendReminder includes meeting date/time + join link",
+            "maskPHIForNotification replaces patient name with 'Client ID #xxx'",
+            "Notification prefs stored in /notification_prefs/{uid}"
+          ],
+          "rtdbPaths": [
+            "/notification_prefs/{uid}",
+            "/notifications/{nid}"
+          ]
+        },
+        {
+          "id": "task-036",
+          "title": "services/webhook.service.js \u2014 Webhook Subscriptions",
+          "file": "assets/src/services/webhook.service.js",
+          "status": "completed",
+          "description": "Subscribe/unsubscribe webhooks. List subscriptions. Test webhook (POST test payload). Generate HMAC signing secret. Validate URL before save.",
+          "dependsOn": [
+            "task-002",
+            "task-005",
+            "task-009"
+          ],
+          "acceptanceCriteria": [
+            "subscribeWebhook stores URL + events + secret to /webhook_subscriptions/{uid}/{sid}",
+            "unsubscribeWebhook removes subscription node",
+            "listSubscriptions returns all for host",
+            "testWebhook POSTs test payload with HMAC signature header",
+            "Invalid URL rejected by validator before save"
+          ],
+          "rtdbPaths": [
+            "/webhook_subscriptions/{uid}/{sid}"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Views",
+      "description": "Page-level views composing shared components + services. Each is a factory function: export function ViewName() { ... return ctrl }. Views use EventBus for cross-component messages. Children self-mount into data-cid placeholders \u2014 parents never own child DOM.",
+      "tasks": [
+        {
+          "id": "task-037",
+          "route": "/login",
+          "title": "Login View",
+          "file": "assets/src/views/login.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "Toast",
+            "user-avatar"
+          ],
+          "states": [
+            "loading",
+            "unauthenticated",
+            "authenticated (redirect)",
+            "error"
+          ],
+          "description": "Centered card with branding + Google sign-in button. Popup-blocker fallback. Redirect on auth. Error state for failed login.",
+          "dependsOn": [
+            "task-004",
+            "task-016",
+            "task-027",
+            "task-028"
+          ]
+        },
+        {
+          "id": "task-038",
+          "route": "/",
+          "title": "Dashboard View",
+          "file": "assets/src/views/dashboard.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "badge",
+            "status-dot",
+            "Toast"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "empty",
+            "error"
+          ],
+          "description": "KPI cards (bookings today, pending, active workspaces). No-show rate card. Recent bookings table. Quick action buttons. Listens to MSG.BOOKING_CREATED for live updates.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-011",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-016"
+          ]
+        },
+        {
+          "id": "task-039",
+          "route": "/calendar",
+          "title": "Calendar Connections View",
+          "file": "assets/src/views/calendar-connections.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "Modal",
+            "confirm-dialog",
+            "badge",
+            "status-dot",
+            "Toast"
+          ],
+          "states": [
+            "loading",
+            "connected",
+            "empty",
+            "syncing",
+            "error",
+            "max_reached"
+          ],
+          "description": "List connected calendars with provider icon, email, sync time, status dot. Connect/disconnect buttons. OAuth flow with state param. MAX_CONNECTIONS=10 indicator.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-011",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-017",
+            "task-018",
+            "task-029"
+          ]
+        },
+        {
+          "id": "task-040",
+          "route": "/event-types",
+          "title": "Event Types View",
+          "file": "assets/src/views/event-types.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "Modal",
+            "confirm-dialog",
+            "badge",
+            "search-input",
+            "Toast",
+            "form-field"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "empty",
+            "creating",
+            "editing",
+            "error"
+          ],
+          "description": "Event type card grid. Inline create/edit form. Delete with confirmation. Search filter. Free tier: create disabled with upgrade prompt. Link to booking page editor for each event type.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-017",
+            "task-018",
+            "task-020",
+            "task-025",
+            "task-030"
+          ]
+        },
+        {
+          "id": "task-041",
+          "route": "/availability",
+          "title": "Availability View",
+          "file": "assets/src/views/availability.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "date-picker",
+            "time-slot-grid",
+            "Modal",
+            "Toast",
+            "copy-button",
+            "tab-bar"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "saving",
+            "error",
+            "month_empty"
+          ],
+          "description": "Month calendar grid with day status dots. Slot list on day click. Working hours editor per day. Booking rules panel. Copy booking link button.",
+          "dependsOn": [
+            "task-004",
+            "task-012",
+            "task-013",
+            "task-017",
+            "task-019",
+            "task-023",
+            "task-024",
+            "task-026",
+            "task-032"
+          ]
+        },
+        {
+          "id": "task-042",
+          "route": "/book/:hostId/:eventTypeId",
+          "title": "Public Booking Page",
+          "file": "assets/src/views/booking.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "date-picker",
+            "time-slot-grid",
+            "form-field",
+            "Modal",
+            "Toast",
+            "user-avatar"
+          ],
+          "states": [
+            "loading",
+            "date_select",
+            "slot_select",
+            "form",
+            "confirm",
+            "success",
+            "error",
+            "password_gate",
+            "slot_taken",
+            "event_deleted",
+            "no_availability"
+          ],
+          "description": "Multi-step wizard: date \u2192 slot \u2192 form \u2192 confirm \u2192 success. sessionStorage persistence. history.replaceState for steps. Real-time slot updates via onValue. Password gate if configured. Full-screen public view (no sidebar).",
+          "dependsOn": [
+            "task-004",
+            "task-012",
+            "task-017",
+            "task-023",
+            "task-024",
+            "task-025",
+            "task-027",
+            "task-031",
+            "task-032",
+            "task-035"
+          ]
+        },
+        {
+          "id": "task-043",
+          "route": "/event-types/editor",
+          "title": "Booking Page Editor",
+          "file": "assets/src/views/booking-page-editor.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "Modal",
+            "Toast",
+            "form-field",
+            "tab-bar"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "saving",
+            "error"
+          ],
+          "description": "3-panel layout: block palette (Header, Description, Calendar, Form, Testimonials, FAQ, Image, Spacer, Footer) + live preview at 375px + properties panel. Layout switcher: Classic/Modern/Compact. Color picker. Button text editor. Save + preview actions.",
+          "dependsOn": [
+            "task-004",
+            "task-012",
+            "task-017",
+            "task-019",
+            "task-025",
+            "task-030"
+          ]
+        },
+        {
+          "id": "task-044",
+          "route": "/routing-forms",
+          "title": "Routing Forms View",
+          "file": "assets/src/views/routing-forms.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "Modal",
+            "confirm-dialog",
+            "search-input",
+            "tab-bar",
+            "Toast",
+            "form-field"
+          ],
+          "states": [
+            "loading",
+            "list",
+            "building",
+            "preview",
+            "saving",
+            "error"
+          ],
+          "description": "Form list + create. Form builder: add/reorder questions with drag handles. Routing rules: if question X = answer Y \u2192 pool Z. Preview mode with sample answers.",
+          "dependsOn": [
+            "task-004",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-017",
+            "task-018",
+            "task-019",
+            "task-020",
+            "task-025",
+            "task-033"
+          ]
+        },
+        {
+          "id": "task-045",
+          "route": "/pools",
+          "title": "Pools View",
+          "file": "assets/src/views/pools.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "Modal",
+            "confirm-dialog",
+            "search-input",
+            "badge",
+            "data-table",
+            "Toast"
+          ],
+          "states": [
+            "loading",
+            "list",
+            "detail",
+            "editing",
+            "error"
+          ],
+          "description": "Pool list + detail. Member list with priority badges. Add/remove members. Strategy toggle (round-robin/collective). Assignment counts per member.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-017",
+            "task-018",
+            "task-020",
+            "task-022",
+            "task-033"
+          ]
+        },
+        {
+          "id": "task-046",
+          "route": "/workspaces",
+          "title": "Workspaces List View",
+          "file": "assets/src/views/workspaces.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "badge",
+            "Toast"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "empty",
+            "error"
+          ],
+          "description": "Workspace cards with client name, event type, date, task count, last message time. Click navigates to detail. Status badges (Active/Upcoming/Completed).",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-034"
+          ]
+        },
+        {
+          "id": "task-047",
+          "route": "/workspaces/:id",
+          "title": "Workspace Detail View",
+          "file": "assets/src/views/workspace-detail.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "Modal",
+            "confirm-dialog",
+            "badge",
+            "status-dot",
+            "Toast",
+            "form-field",
+            "copy-button",
+            "user-avatar",
+            "tab-bar"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "timer_running",
+            "timer_paused",
+            "forbidden",
+            "error"
+          ],
+          "description": "3-column: tasks checklist (add/toggle/delete) + timer (3-mode: prep/session/follow-up, large elapsed, start/pause/stop) + messages thread (send/list). Timer uses Date.now() delta. 8h warning. Access denied for non-participants.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-011",
+            "task-012",
+            "task-013",
+            "task-017",
+            "task-018",
+            "task-019",
+            "task-025",
+            "task-026",
+            "task-027",
+            "task-034"
+          ]
+        },
+        {
+          "id": "task-048",
+          "route": "/time-tracking",
+          "title": "Time Tracking View",
+          "file": "assets/src/views/time-tracking.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-table",
+            "empty-state",
+            "badge",
+            "pagination",
+            "tab-bar",
+            "Toast"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "empty",
+            "error"
+          ],
+          "description": "Time entries per workspace/team member. Filter by date range. Duration totals per mode (prep/session/follow-up). No invoicing \u2014 tracking only.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-012",
+            "task-014",
+            "task-015",
+            "task-019",
+            "task-021",
+            "task-034"
+          ]
+        },
+        {
+          "id": "task-049",
+          "route": "/compliance",
+          "title": "Compliance View",
+          "file": "assets/src/views/compliance.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "Modal",
+            "badge",
+            "status-dot",
+            "Toast",
+            "confirm-dialog"
+          ],
+          "states": [
+            "loading",
+            "baa_unsigned",
+            "baa_signed",
+            "saving",
+            "error"
+          ],
+          "description": "BAA section: status, sign, download, revoke. PHI masking toggle. Notification masking settings. Data retention policy display. GDPR data residency selector.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-011",
+            "task-012",
+            "task-013",
+            "task-017",
+            "task-018"
+          ]
+        },
+        {
+          "id": "task-050",
+          "route": "/webhooks",
+          "title": "Webhooks View",
+          "file": "assets/src/views/webhooks.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "Modal",
+            "confirm-dialog",
+            "badge",
+            "status-dot",
+            "Toast",
+            "form-field",
+            "copy-button"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "adding",
+            "testing",
+            "error"
+          ],
+          "description": "Subscription list: URL, events (badges), status dot. Add form: URL input, event checkboxes (invitee.created, invitee.canceled, routing.submitted). Test button shows response. Delete with confirmation.",
+          "dependsOn": [
+            "task-004",
+            "task-010",
+            "task-011",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-017",
+            "task-018",
+            "task-025",
+            "task-026",
+            "task-036"
+          ]
+        },
+        {
+          "id": "task-051",
+          "route": "/api-keys",
+          "title": "API Keys View",
+          "file": "assets/src/views/api-keys.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "skeleton-card",
+            "empty-state",
+            "Modal",
+            "confirm-dialog",
+            "badge",
+            "Toast",
+            "copy-button"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "generating",
+            "key_revealed",
+            "error"
+          ],
+          "description": "Key list: name, prefix, scopes, created, last used. Generate: name + scope checkboxes \u2192 one-time reveal modal with copy button + red warning. Revoke with confirmation. Keys hashed with PBKDF2 before storage.",
+          "dependsOn": [
+            "task-004",
+            "task-008",
+            "task-010",
+            "task-012",
+            "task-013",
+            "task-015",
+            "task-017",
+            "task-018",
+            "task-026"
+          ]
+        },
+        {
+          "id": "task-052",
+          "route": "/settings",
+          "title": "Settings View",
+          "file": "assets/src/views/settings.js",
+          "status": "completed",
+          "components": [
+            "Spinner",
+            "Modal",
+            "confirm-dialog",
+            "Toast",
+            "form-field",
+            "user-avatar"
+          ],
+          "states": [
+            "loading",
+            "loaded",
+            "saving",
+            "error"
+          ],
+          "description": "Profile (name, email, timezone). Notification prefs (email for bookings, email for cancellations). Theme. Account deletion.",
+          "dependsOn": [
+            "task-004",
+            "task-012",
+            "task-017",
+            "task-018",
+            "task-025",
+            "task-027",
+            "task-028"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Cloud Functions",
+      "description": "Server-side Firebase Functions for webhook dispatch, timer enforcement, email dispatch, OAuth token exchange. Deployed separately from frontend. Note: functions/package.json and functions/.eslintrc.js are created by `firebase init functions` (not a tracked task) \u2014 they need dependencies: firebase-functions, firebase-admin, @sendgrid/mail, crypto.",
+      "tasks": [
+        {
+          "id": "task-053",
+          "title": "functions/src/dispatch-webhook.js",
+          "file": "functions/src/dispatch-webhook.js",
+          "status": "completed",
+          "trigger": "onValueWritten('/bookings/{bookingId}')",
+          "description": "Detects booking create/update/delete. Reads webhook subscriptions for host. Dispatches POST to each subscriber URL with HMAC-SHA256 signature. 3 retries with backoff (5s/30s/300s) \u2014 non-Firebase retry OK. Dead letter queue to /webhook_failures/{sid}. Tracks delivery status.",
+          "dependsOn": [
+            "task-031",
+            "task-036"
+          ],
+          "acceptanceCriteria": [
+            "Fires on booking write to /bookings/{bid}",
+            "Reads /webhook_subscriptions/{hostId}",
+            "Dispatches POST with HMAC signature to each subscriber",
+            "3 retries on failure with exponential backoff",
+            "Failed deliveries logged to /webhook_failures/{sid}",
+            "Does NOT dispatch for deleted bookings"
+          ]
+        },
+        {
+          "id": "task-054",
+          "title": "functions/src/enforce-timer-limit.js",
+          "file": "functions/src/enforce-timer-limit.js",
+          "status": "completed",
+          "trigger": "onValueWritten('/workspaces/{wid}/timers/current/startTime') + periodic check",
+          "description": "Monitors running timers. If elapsed >8h, auto-stops server-side. Logs billing entry. Sends warning notification at 7h. Enforces max 12h cap.",
+          "dependsOn": [
+            "task-034",
+            "task-035"
+          ],
+          "acceptanceCriteria": [
+            "Timer >8h triggers auto-stop",
+            "Billing entry logged to /workspaces/{wid}/timers/log",
+            "Warning notification sent to host at 7h",
+            "12h hard cap enforced",
+            "Idempotent: won't double-stop already stopped timer"
+          ]
+        },
+        {
+          "id": "task-055",
+          "title": "functions/src/send-notification.js",
+          "file": "functions/src/send-notification.js",
+          "status": "completed",
+          "trigger": "HTTP POST /api/notifications/send",
+          "description": "Receives notification request from client. Constructs email via SendGrid/Mailgun template. Masks PHI (replaces patient name with 'Client ID #xxx'). Logs delivery to /notifications/{nid}. Rate limited: max 30/min per host.",
+          "dependsOn": [
+            "task-035"
+          ],
+          "acceptanceCriteria": [
+            "Accepts POST with {type, bookingId, hostId, recipient}",
+            "Constructs and sends email via SendGrid/Mailgun",
+            "PHI masked in notification body when applicable",
+            "Delivery logged to /notifications/{nid}",
+            "Rate limit enforced: 30/min per host"
+          ]
+        },
+        {
+          "id": "task-056",
+          "title": "functions/src/oauth-token-exchange.js",
+          "file": "functions/src/oauth-token-exchange.js",
+          "status": "completed",
+          "trigger": "HTTP POST /api/oauth/exchange",
+          "description": "Handles OAuth token exchange for Google/Microsoft calendar connections. Receives auth code from client, exchanges for tokens server-side, encrypts with server-side key (AES-256-GCM), stores encrypted blob in RTDB. Client never sees raw tokens.",
+          "dependsOn": [
+            "task-008",
+            "task-029"
+          ],
+          "acceptanceCriteria": [
+            "Exchanges auth code for access+refresh tokens server-side",
+            "Encrypts tokens with AES-256-GCM before storage",
+            "Stores encrypted blob to /calendar_connections/{uid}/{cid}",
+            "Client never receives raw access/refresh tokens",
+            "CSRF state parameter validated on callback"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Firebase Config & Build",
+      "description": "RTDB security rules, Firebase project config, Vite build config, env example. Deployed last to enforce rules on completed data model.",
+      "tasks": [
+        {
+          "id": "task-057",
+          "title": "database.rules.json \u2014 RTDB Security Rules",
+          "file": "database.rules.json",
+          "status": "completed",
+          "description": "Complete security rules for all 12+ RTDB nodes: users (self-write), event_types, availability (slot booking guard: only free slots writable by non-host), calendar_connections (host-only), booking_rules, bookings (host+invitee read), routing_forms, routing_pools, routing_counters, workspaces (host+client read/write), secure_phi (host+invitee read, invitee write), webhook_subscriptions (host-only), api_keys (host-only), notification_prefs.",
+          "dependsOn": [
+            "task-028",
+            "task-029",
+            "task-030",
+            "task-031",
+            "task-032",
+            "task-033",
+            "task-034",
+            "task-035",
+            "task-036"
+          ],
+          "acceptanceCriteria": [
+            "Unauthenticated reads to /users denied",
+            "User can only write to own /users/{uid}",
+            "Slot booking: only free slots writable by non-host",
+            "PHI data: only host or invitee can read",
+            "API keys: only host can read/write",
+            "Calendar tokens: only host + Cloud Function can read",
+            "Rules pass Firebase emulator validation",
+            "All .validate rules match validators.js constraints"
+          ]
+        },
+        {
+          "id": "task-058",
+          "title": "firebase.json \u2014 Project Config",
+          "file": "firebase.json",
+          "status": "completed",
+          "description": "Firebase project config: RTDB instance, emulator ports (database:9000, auth:9099, hosting:5000, functions:5001), hosting (public:'.', rewrites to index.html for SPA, /api/* \u2192 Cloud Functions), ignore patterns.",
+          "dependsOn": [
+            "task-001"
+          ],
+          "acceptanceCriteria": [
+            "Hosting rewrites all paths to index.html",
+            "/api/* rewrites to Cloud Functions",
+            "Emulator ports specified for all services",
+            "Ignore list excludes node_modules, .git, features"
+          ]
+        },
+        {
+          "id": "task-059",
+          "title": "vite.config.js \u2014 Vite Build Config",
+          "file": "vite.config.js",
+          "status": "completed",
+          "description": "Vite zero-config build. Entry: assets/src/app.js. Output: assets/dist/bundle.js. Dev server with HMR. Firebase SDK externalized (loaded via CDN). morphdom externalized. Tailwind JIT compilation.",
+          "dependsOn": [
+            "task-004"
+          ],
+          "acceptanceCriteria": [
+            "vite build produces single bundle.js",
+            "Firebase SDKs NOT bundled (CDN external)",
+            "morphdom NOT bundled (CDN external)",
+            "Dev server starts and HMR works",
+            "Source maps in dev, stripped in production"
+          ]
+        },
+        {
+          "id": "task-060",
+          "title": ".env.example \u2014 Environment Variables",
+          "file": ".env.example",
+          "status": "completed",
+          "description": "Documents required env vars: VITE_FIREBASE_API_KEY, VITE_FIREBASE_DATABASE_URL, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_AUTH_DOMAIN, OAUTH_ENCRYPTION_KEY (Cloud Function only), SENDGRID_API_KEY (Cloud Function only), WEBHOOK_SIGNING_SECRET (Cloud Function only).",
+          "dependsOn": [],
+          "acceptanceCriteria": [
+            "All env vars documented with example values",
+            "VITE_ prefix for client-accessible vars",
+            "Cloud Function vars clearly marked as server-only",
+            "No real secrets in example file"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "name": "Post-MVP Features (Priority 1 \u2014 Enterprise Internal)",
+      "description": "Features Gemini identified as critical for internal enterprise launch. Implement after core platform is stable.",
+      "tasks": [
+        {
+          "id": "task-061",
+          "title": "SSO/SAML Integration",
+          "file": "functions/src/sso-handler.js",
+          "status": "completed",
+          "description": "SAML/OIDC SSO via Firebase Auth (Google Cloud Identity Platform). Configure SAML provider in Firebase Console. Route: /login/sso. Provider discovery by email domain.",
+          "dependsOn": [
+            "task-028"
+          ]
+        },
+        {
+          "id": "task-062",
+          "title": "Audit Logging",
+          "file": "assets/src/services/audit.service.js",
+          "status": "completed",
+          "description": "Immutable append-only audit log. RTDB: /audit_logs/{timestamp}. Fields: userId, action, target, oldValue, newValue, ip. Cloud Function writes audit entries on sensitive actions. Retention: 1 year.",
+          "dependsOn": [
+            "task-028"
+          ]
+        },
+        {
+          "id": "task-063",
+          "title": "Resource Booking",
+          "file": "assets/src/services/resource.service.js",
+          "status": "completed",
+          "description": "Meeting rooms, equipment, shared spaces. RTDB: /resources/{rid}. Fields: name, type (room/equipment/space), capacity, location. Booking conflict check: resource can't be double-booked. View: /resources.",
+          "dependsOn": [
+            "task-031",
+            "task-032"
+          ]
+        },
+        {
+          "id": "task-064",
+          "title": "Video Conferencing Auto-Generate",
+          "file": "assets/src/services/conferencing.service.js",
+          "status": "completed",
+          "description": "Auto-generate Zoom/Meet/Teams links on booking. Event type location field: zoom/meet/teams. OAuth for Zoom + Teams. Meet links auto-generated without OAuth (use Google Calendar API). Store join link in /bookings/{bid}/location.",
+          "dependsOn": [
+            "task-029",
+            "task-031"
+          ]
+        },
+        {
+          "id": "task-065",
+          "title": "Contacts/CRM",
+          "file": "assets/src/services/contact.service.js",
+          "status": "completed",
+          "description": "Contact profiles with notes, custom fields, lists. RTDB: /contacts/{uid}/{cid}. Views: /contacts, /contacts/:id. Track lastBooking, totalBookings, noShowCount. Filter/sort by custom fields.",
+          "dependsOn": [
+            "task-031"
+          ]
+        },
+        {
+          "id": "task-066",
+          "title": "Single-Use Links",
+          "file": "assets/src/services/one-time-link.service.js",
+          "status": "completed",
+          "description": "Time-limited, expire-after-use booking tokens. RTDB: /one_time_links/{token}. Fields: eventTypeId, hostId, expiresAt, isUsed. Route: /book/otl/{token}. Token auto-expires after booking or TTL.",
+          "dependsOn": [
+            "task-031"
+          ]
+        }
+      ]
+    }
+  ],
+  "files": {
+    "existing": [
+      "assets/src/controller.js",
+      "assets/src/router.js"
+    ],
+    "toCreate": [
+      "index.html",
+      "vite.config.js",
+      ".env.example",
+      "firebase.json",
+      "database.rules.json",
+      "assets/src/firebase.js",
+      "assets/src/app.js",
+      "assets/src/messages/catalog.js",
+      "assets/src/utils/Result.js",
+      "assets/src/utils/icons.js",
+      "assets/src/utils/datetime.js",
+      "assets/src/utils/crypto.js",
+      "assets/src/utils/validators.js",
+      "assets/src/components/badge.js",
+      "assets/src/components/status-dot.js",
+      "assets/src/components/spinner.js",
+      "assets/src/components/skeleton-card.js",
+      "assets/src/components/skeleton-table.js",
+      "assets/src/components/empty-state.js",
+      "assets/src/components/toast.js",
+      "assets/src/components/modal.js",
+      "assets/src/components/confirm-dialog.js",
+      "assets/src/components/tab-bar.js",
+      "assets/src/components/search-input.js",
+      "assets/src/components/pagination.js",
+      "assets/src/components/data-table.js",
+      "assets/src/components/date-picker.js",
+      "assets/src/components/time-slot-grid.js",
+      "assets/src/components/form-field.js",
+      "assets/src/components/copy-button.js",
+      "assets/src/components/user-avatar.js",
+      "assets/src/services/auth.service.js",
+      "assets/src/services/calendar.service.js",
+      "assets/src/services/event-type.service.js",
+      "assets/src/services/booking.service.js",
+      "assets/src/services/availability.service.js",
+      "assets/src/services/routing.service.js",
+      "assets/src/services/workspace.service.js",
+      "assets/src/services/notification.service.js",
+      "assets/src/services/webhook.service.js",
+      "assets/src/views/login.js",
+      "assets/src/views/dashboard.js",
+      "assets/src/views/calendar-connections.js",
+      "assets/src/views/event-types.js",
+      "assets/src/views/booking-page-editor.js",
+      "assets/src/views/availability.js",
+      "assets/src/views/booking.js",
+      "assets/src/views/routing-forms.js",
+      "assets/src/views/pools.js",
+      "assets/src/views/workspaces.js",
+      "assets/src/views/workspace-detail.js",
+      "assets/src/views/time-tracking.js",
+      "assets/src/views/compliance.js",
+      "assets/src/views/webhooks.js",
+      "assets/src/views/api-keys.js",
+      "assets/src/views/settings.js",
+      "functions/package.json",
+      "functions/src/dispatch-webhook.js",
+      "functions/src/enforce-timer-limit.js",
+      "functions/src/send-notification.js",
+      "functions/src/oauth-token-exchange.js"
+    ],
+    "phase7": [
+      "functions/src/sso-handler.js",
+      "assets/src/services/audit.service.js",
+      "assets/src/services/resource.service.js",
+      "assets/src/services/conferencing.service.js",
+      "assets/src/services/contact.service.js",
+      "assets/src/services/one-time-link.service.js"
+    ],
+    "directories": [
+      "assets/src/utils/",
+      "assets/src/messages/",
+      "assets/src/components/",
+      "assets/src/services/",
+      "assets/src/views/",
+      "assets/dist/",
+      "functions/src/"
+    ]
+  }
+}

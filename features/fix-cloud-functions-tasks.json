@@ -1,0 +1,110 @@
+{
+  "feature": {
+    "id": "fix-cloud-functions",
+    "title": "Fix Cloud Function bugs in dispatch-webhook, enforce-timer-limit, and oauth-token-exchange",
+    "priority": "BLOCKER",
+    "scoreImpact": {
+      "Correctness": "6/10 → 8/10",
+      "Reliability": "6/10 → 8/10",
+      "Security": "5/10 → 7/10"
+    },
+    "estimatedEffort": "M (1-2 days)",
+    "dependsOn": []
+  },
+  "tasks": [
+    {
+      "id": "cf-01",
+      "title": "Fix dispatch-webhook.js: undefined sub variable and O(n) hostId scan",
+      "description": "In dispatchWithRetry(), `sub` is referenced on line 103 but never defined in scope. It exists only in the calling function's for...of loop. Fix: thread hostId through as a parameter instead of the O(n) hostIdFromSid scan. Pass hostId (already available from Object.entries loop) directly. Also fix deliveryCount: pass current sub.deliveryCount as parameter or read from DB snapshot at function start.",
+      "affectedFiles": [
+        "functions/src/dispatch-webhook.js"
+      ],
+      "dependencies": [],
+      "complexity": "M",
+      "estimatedHours": 2,
+      "acceptanceCriteria": [
+        "dispatchWithRetry signature: (url, payload, secret, sid, hostId, deliveryCount, db)",
+        "hostId thread through from caller's Object.entries(subscriptions) loop",
+        "hostIdFromSid function DELETED (no longer needed)",
+        "deliveryCount properly incremented: deliveryCount + 1 not (undefined || 0) + 1",
+        "lastDelivery and lastResponseCode update uses correct path: /webhook_subscriptions/${hostId}/${sid}",
+        "No regression: webhook dispatch still works end-to-end"
+      ]
+    },
+    {
+      "id": "cf-02",
+      "title": "Fix enforce-timer-limit.js: add scheduled trigger for periodic timer check",
+      "description": "Current trigger `onValueWritten('/workspaces/{wid}/timers/current/startTime')` only fires ONCE when timer starts. Timer never auto-stops because startTime isn't rewritten. Fix: add a scheduled Cloud Function (onSchedule every 5 minutes) that queries all running timers and checks elapsed time. Alternative: use onValueWritten on a heartbeat field that the client writes periodically, or use Cloud Tasks to schedule a check at startTime + 8h.",
+      "affectedFiles": [
+        "functions/src/enforce-timer-limit.js"
+      ],
+      "dependencies": [],
+      "complexity": "M",
+      "estimatedHours": 4,
+      "acceptanceCriteria": [
+        "Timer auto-stops at 8h elapsed (MAX_TIMER_HOURS) regardless of when startTime was written",
+        "Timer hard-stops at 12h (HARD_CAP_HOURS)",
+        "Warning notification written at 7h (WARNING_HOURS)",
+        "Idempotent: won't double-stop an already stopped timer",
+        "Scheduled function reads all workspaces with running timers, checks elapsed time",
+        "Scheduled function respects Firebase read quotas (batched reads, not individual per workspace)",
+        "Log entry written to /workspaces/{wid}/timers/log/ on auto-stop",
+        "Clear log message identifying auto-stop vs manual stop"
+      ]
+    },
+    {
+      "id": "cf-03",
+      "title": "Fix oauth-token-exchange.js: validate ENCRYPTION_KEY at function entry, not just module load",
+      "description": "Module load does console.error if OAUTH_ENCRYPTION_KEY is missing but continues execution. When encryptTokens() is called later, Buffer.from(undefined, 'hex') throws TypeError. Fix: validate ENCRYPTION_KEY at function entry (before any logic), return 500 with clear error. Also add startup validation that throws to prevent deployment without the key.",
+      "affectedFiles": [
+        "functions/src/oauth-token-exchange.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 1,
+      "acceptanceCriteria": [
+        "encryptTokens() validates ENCRYPTION_KEY before use, throws clear error if missing",
+        "decryptTokens() validates ENCRYPTION_KEY before use, throws clear error if missing",
+        "HTTP handler returns 500 with 'Server configuration error' if key missing (not TypeError crash)",
+        "Module-level check upgraded from console.error to throwing during cold start (prevents deploy)",
+        "Error message includes 'OAUTH_ENCRYPTION_KEY' in text for ops visibility"
+      ]
+    },
+    {
+      "id": "cf-04",
+      "title": "Fix book-slot.js: replace Math.random() with crypto.randomUUID() for booking/workspace IDs",
+      "description": "randomId() uses Math.random() which is not cryptographically secure. While booking IDs don't require crypto-level entropy, they are used in URLs and access patterns. Use crypto.randomUUID() for collision-resistant, non-guessable IDs.",
+      "affectedFiles": [
+        "functions/src/book-slot.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "randomId() replaced with crypto.randomUUID() or crypto.getRandomValues()",
+        "Booking ID format: 'bkg_' + 8 hex chars from crypto",
+        "Workspace ID format: 'ws_' + 6 hex chars from crypto",
+        "No Math.random() usage in Cloud Functions"
+      ]
+    },
+    {
+      "id": "cf-05",
+      "title": "Add retry logic to book-slot.js for transient Firebase transaction failures",
+      "description": "The booking transaction uses maxRetries: 0 by design (slot-taken should fail fast). But transient Firebase errors (network blips, server busy) shouldn't fail the booking. Add distinction: transaction conflict (slot_taken) → fail fast. Transient error (network, server) → retry once with 1s backoff.",
+      "affectedFiles": [
+        "functions/src/book-slot.js"
+      ],
+      "dependencies": [],
+      "complexity": "M",
+      "estimatedHours": 2,
+      "acceptanceCriteria": [
+        "Transaction conflict (slot_taken, slot_missing) → fail fast, no retry",
+        "Transient Firebase error → 1 retry with 1s backoff",
+        "Max 2 total attempts (1 initial + 1 retry)",
+        "Both attempts logged with attempt number",
+        "No retry on validation errors (400-level)",
+        "15s total timeout across both attempts"
+      ]
+    }
+  ]
+}

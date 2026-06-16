@@ -1,0 +1,124 @@
+{
+  "feature": {
+    "id": "architecture-controller-per-component",
+    "title": "Convert all 18 components from pure HTML-returning functions to controller factories",
+    "priority": "BLOCKER",
+    "scoreImpact": {
+      "Controller-per-Component": "0/10 → 10/10",
+      "Component Composition": "0/10 → 8/10"
+    },
+    "estimatedEffort": "XL (4-6 days)",
+    "dependsOn": []
+  },
+  "tasks": [
+    {
+      "id": "cc-01",
+      "title": "Create component controller factory pattern and convert 8 simple display components",
+      "description": "Convert 8 stateless/simple display components: badge, status-dot, spinner, skeleton-card, skeleton-table, empty-state, user-avatar, copy-button. Each exports `createX(opts)` returning `controller({ template, state, methods })`. Composition via `toString()` → `data-cid` swap. Simple display components use minimal state (just props passed at creation).",
+      "affectedFiles": [
+        "assets/src/components/badge.js",
+        "assets/src/components/status-dot.js",
+        "assets/src/components/spinner.js",
+        "assets/src/components/skeleton-card.js",
+        "assets/src/components/skeleton-table.js",
+        "assets/src/components/empty-state.js",
+        "assets/src/components/user-avatar.js",
+        "assets/src/components/copy-button.js"
+      ],
+      "dependencies": [],
+      "complexity": "L",
+      "estimatedHours": 10,
+      "acceptanceCriteria": [
+        "Each file exports `createX(opts)` not `function x(...)` returning HTML string",
+        "Each factory returns `controller({ template, state, methods })`",
+        "Props passed at creation time stored as initial state",
+        "Setters provided as methods: `setLabel(l)`, `setVariant(v)`",
+        "Composition works: `${createBadge({variant:'success',label:'OK'})}` produces valid data-cid placeholder",
+        "All existing esc() calls preserved in templates",
+        "No regression in component HTML output"
+      ]
+    },
+    {
+      "id": "cc-02",
+      "title": "Convert 5 interactive components to controller factories",
+      "description": "Convert components with user interaction: tab-bar, search-input, pagination, time-slot-grid, date-picker. These handle clicks, input changes, and need ctrl.trigger() for event binding. On-change callbacks passed as constructor options, invoked from controller methods.",
+      "affectedFiles": [
+        "assets/src/components/tab-bar.js",
+        "assets/src/components/search-input.js",
+        "assets/src/components/pagination.js",
+        "assets/src/components/time-slot-grid.js",
+        "assets/src/components/date-picker.js"
+      ],
+      "dependencies": ["cc-01"],
+      "complexity": "L",
+      "estimatedHours": 12,
+      "acceptanceCriteria": [
+        "Each file exports `createX(opts)` returning controller",
+        "Event handlers use ctrl.trigger(), never raw addEventListener",
+        "onChange/onSelect/onPage callbacks passed in opts, called from controller methods",
+        "Debounced inputs use debounce() wrapper on controller method",
+        "Active/selected state managed via ctrl.render(), not DOM manipulation",
+        "Ctrl.destroy() cleans up all triggers and timeouts"
+      ]
+    },
+    {
+      "id": "cc-03",
+      "title": "Convert 5 complex overlay components to controller factories",
+      "description": "Convert components that manage open/close state and portal-like behavior: modal, confirm-dialog, toast, form-field, data-table. These have internal lifecycle (open/close transitions, auto-dismiss timers for toasts).",
+      "affectedFiles": [
+        "assets/src/components/modal.js",
+        "assets/src/components/confirm-dialog.js",
+        "assets/src/components/toast.js",
+        "assets/src/components/form-field.js",
+        "assets/src/components/data-table.js"
+      ],
+      "dependencies": ["cc-01", "cc-02"],
+      "complexity": "L",
+      "estimatedHours": 14,
+      "acceptanceCriteria": [
+        "Each file exports `createX(opts)` returning controller",
+        "Modal/dialog: open/close methods on controller, isOpen in state",
+        "Toast: auto-dismiss via ctrl.defer(), cleanup on destroy",
+        "Form-field: validation state managed locally, error display via ctrl.render()",
+        "Data-table: sort state, column config, row data all in controller state",
+        "All use ctrl.trigger() for event binding",
+        "Ctrl.destroy() cleans up all timeouts, triggers, and DOM"
+      ]
+    },
+    {
+      "id": "cc-04",
+      "title": "Add destroy chain verification to all component controllers",
+      "description": "Verify every component controller properly cleans up: timeouts via ctrl.defer(), event listeners via ctrl.trigger(), subscriptions via ctrl.unsub(). Components destroyed when parent view controller is destroyed (via destroy chain).",
+      "affectedFiles": [
+        "assets/src/components/badge.js",
+        "assets/src/components/status-dot.js",
+        "assets/src/components/spinner.js",
+        "assets/src/components/skeleton-card.js",
+        "assets/src/components/skeleton-table.js",
+        "assets/src/components/empty-state.js",
+        "assets/src/components/user-avatar.js",
+        "assets/src/components/copy-button.js",
+        "assets/src/components/tab-bar.js",
+        "assets/src/components/search-input.js",
+        "assets/src/components/pagination.js",
+        "assets/src/components/time-slot-grid.js",
+        "assets/src/components/date-picker.js",
+        "assets/src/components/modal.js",
+        "assets/src/components/confirm-dialog.js",
+        "assets/src/components/toast.js",
+        "assets/src/components/form-field.js",
+        "assets/src/components/data-table.js"
+      ],
+      "dependencies": ["cc-01", "cc-02", "cc-03"],
+      "complexity": "M",
+      "estimatedHours": 6,
+      "acceptanceCriteria": [
+        "Every component controller's destroy() method works correctly",
+        "No leaked timeouts: create/destroy 20 times, no pending timers",
+        "No leaked event listeners: create/destroy 20 times, no duplicate handlers",
+        "No leaked global refs: window.__app and window.__el clean after destroy",
+        "Symbol.dispose present on all controllers (framework auto-handles)"
+      ]
+    }
+  ]
+}

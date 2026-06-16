@@ -1,0 +1,89 @@
+{
+  "feature": {
+    "id": "fix-booking-service",
+    "title": "Fix booking service correctness, reliability, and performance issues",
+    "priority": "MAJOR",
+    "scoreImpact": {
+      "Correctness": "6/10 → 8/10",
+      "Performance": "6/10 → 8/10",
+      "Reliability": "6/10 → 8/10"
+    },
+    "estimatedEffort": "M (1 day)",
+    "dependsOn": []
+  },
+  "tasks": [
+    {
+      "id": "bs-01",
+      "title": "Fix booking.service.js: propagate original error in pre-submit check",
+      "description": "In bookSlot(), the pre-submit event type check swallows the original error: `const [et, etErr] = await getEventType(hostId, eventTypeId).unwrap(); if (etErr) throw new Error('Unable to verify event type — please try again')`. The original etErr is discarded. Fix: include original error as cause and log it via tapErr.",
+      "affectedFiles": [
+        "assets/src/services/booking.service.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "Pre-submit check errors include original error as cause: `new Error('...', { cause: etErr })`",
+        "User-facing message remains friendly",
+        "Original error logged via console.error or tapErr for debugging",
+        "Event type existence check handles null et (event not found) separately from read errors"
+      ]
+    },
+    {
+      "id": "bs-02",
+      "title": "Fix booking.service.js: add host-bookings index to eliminate full-table scans",
+      "description": "listBookingsForHost() and listBookingsForInvitee() both read ALL bookings then filter client-side. This is O(n) where n = all bookings in the system. Fix: add a /host_bookings/{hostId}/{bid} index node that stores `true` for each booking. Update book-slot.js Cloud Function to write this index when creating a booking. Service reads the index (only that host's booking IDs), then batch-reads the actual bookings.",
+      "affectedFiles": [
+        "assets/src/services/booking.service.js",
+        "functions/src/book-slot.js"
+      ],
+      "dependencies": ["bs-01"],
+      "complexity": "M",
+      "estimatedHours": 4,
+      "acceptanceCriteria": [
+        "listBookingsForHost() reads /host_bookings/{hostId} only, not /bookings",
+        "listBookingsForInvitee() reads /invitee_bookings/{inviteeId} only",
+        "book-slot.js Cloud Function writes to /host_bookings/{hostId}/{bid} and /invitee_bookings/{inviteeId}/{bid}",
+        "cancelBooking() removes from index nodes",
+        "database.rules.json updated: host_bookings.$hostId.write requires auth.uid === $hostId",
+        "Query time for 1000-bookings host: under 200ms (was potentially seconds)"
+      ]
+    },
+    {
+      "id": "bs-03",
+      "title": "Fix booking.service.js: arrow anti-pattern and ambiguous indentation in bookSlot",
+      "description": "The bookSlot function has ambiguous indentation: the PHI handling block at lines 74-91 looks like it's inside the `if (!resp.ok)` block but is actually outside it. The `if (!resp.ok)` block at line 65 throws on error, so execution only reaches PHI handling on success — but this isn't visually clear. Fix with guard clause pattern: `if (!resp.ok) { /* handle all error cases, return or throw */ }` then happy path (success + PHI handling) runs flat.",
+      "affectedFiles": [
+        "assets/src/services/booking.service.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 1,
+      "acceptanceCriteria": [
+        "Error handling extracted to top of function with clear throw/return",
+        "Happy path (success response + PHI split) at leftmost indentation",
+        "No ambiguous indentation — if block clearly terminates before success path",
+        "Function under 50 lines after refactor"
+      ]
+    },
+    {
+      "id": "bs-04",
+      "title": "Add client-side retry for booking Cloud Function call",
+      "description": "bookSlot() calls the Cloud Function via fetch() with a 15s timeout but no retry for transient failures (network errors, 503, cold start timeout). Add 1 retry with 1s backoff for transient errors. Do NOT retry on 4xx (validation errors) or 409 (slot_taken — retry would be useless).",
+      "affectedFiles": [
+        "assets/src/services/booking.service.js"
+      ],
+      "dependencies": ["bs-03"],
+      "complexity": "S",
+      "estimatedHours": 1,
+      "acceptanceCriteria": [
+        "Transient errors (network failure, 5xx, AbortError) → retry once after 1s",
+        "4xx errors → fail immediately, no retry",
+        "409 Conflict (slot_taken, slot_missing) → fail immediately, no retry",
+        "Max 2 total attempts",
+        "Total timeout: 15s per attempt = 30s max",
+        "Retry attempt logged to console for observability"
+      ]
+    }
+  ]
+}

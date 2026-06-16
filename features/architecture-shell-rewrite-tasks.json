@@ -1,0 +1,76 @@
+{
+  "feature": {
+    "id": "architecture-shell-rewrite",
+    "title": "Rewrite shell controller for child controller composition via toString() + data-cid",
+    "priority": "BLOCKER",
+    "scoreImpact": {
+      "Component Composition": "0/10 → 10/10",
+      "Framework Correctness": "5/10 → 8/10",
+      "Lifecycle Hygiene": "7/10 → 9/10"
+    },
+    "estimatedEffort": "L (2-3 days)",
+    "dependsOn": ["architecture-controller-per-view", "architecture-controller-per-component"]
+  },
+  "tasks": [
+    {
+      "id": "sh-01",
+      "title": "Rewrite shell controller to own only chrome state",
+      "description": "Refactor app.js shell controller. State reduced to: route, user, authLoading, sidebarOpen. All view-specific state keys (dashboard, eventTypes, bookingEventType, compliance, webhooks, workspaces, contacts, etc.) removed. View controllers own their own state.",
+      "affectedFiles": [
+        "assets/src/app.js",
+        "assets/src/constants/app.js"
+      ],
+      "dependencies": ["architecture-controller-per-view", "architecture-controller-per-component"],
+      "complexity": "L",
+      "estimatedHours": 8,
+      "acceptanceCriteria": [
+        "Shell state has max 6 keys: route, currentParams, currentQuery, user, authLoading, sidebarOpen",
+        "Zero view-specific state keys in shell (no dashboard, eventTypes, bookingSlots, etc.)",
+        "INITIAL_STATE constant updated to reflect reduced shell state",
+        "All removed state keys exist in their respective view controllers",
+        "app.register() only registers shell methods: toggleSidebar, signOut",
+        "No view-specific methods in shell register()"
+      ]
+    },
+    {
+      "id": "sh-02",
+      "title": "Implement child controller composition with destroy chain",
+      "description": "Shell template uses ${sidebarCtrl}, ${topbarCtrl}, ${contentViewCtrl} (toString() → data-cid). On route change: destroy previous view controller, create new one, render shell. Chrome controllers (sidebar, topbar, toasts) created once. Destroy chain: shell.destroy() → all child.destroy().",
+      "affectedFiles": [
+        "assets/src/app.js"
+      ],
+      "dependencies": ["sh-01"],
+      "complexity": "L",
+      "estimatedHours": 10,
+      "acceptanceCriteria": [
+        "Sidebar, topbar, toast container are child controllers composed via toString()",
+        "View controllers created via factory on route change, destroyed on unmount",
+        "Shell template: `${sidebarCtrl}` not `${sidebarHtml}`",
+        "shell.destroy() calls sidebar.destroy(), topbar.destroy(), toasts.destroy(), currentView.destroy()",
+        "Route change: previous view.destroy() called BEFORE new view created",
+        "No memory leak: navigate 20 times, window.__app has only shell + chrome controller entries",
+        "Symbol.dispose on shell destroys full chain"
+      ]
+    },
+    {
+      "id": "sh-03",
+      "title": "Wire auth, EventBus, and route loaders for new architecture",
+      "description": "Auth state listener updates shell state (user). EventBus used for cross-controller messages. Route loaders call view controller methods to load data. Router onChange: destroy old view, create new view, render shell.",
+      "affectedFiles": [
+        "assets/src/app.js"
+      ],
+      "dependencies": ["sh-02"],
+      "complexity": "M",
+      "estimatedHours": 6,
+      "acceptanceCriteria": [
+        "Auth state change → shell.render({ user }) → EventBus.emit(AUTH_CHANGED)",
+        "View controllers listen on EventBus for AUTH_CHANGED if needed",
+        "Router onChange: mountView(path) → shell.render({ route: path, sidebarOpen: false })",
+        "Route loaders: view controller.load() called after mount, view manages its own loading state",
+        "ROUTE_DATA_KEYS map removed (views handle their own data loading)",
+        "cleanupSubscriptions() → currentView.destroy() (subscriptions owned by view controller)",
+        "beforeunload handler calls shell.destroy()"
+      ]
+    }
+  ]
+}

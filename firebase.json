@@ -1,0 +1,65 @@
+{
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "features/**",
+      "*.md",
+      "*.jsonl",
+      "package.json",
+      "package-lock.json",
+      "Strategic Research Report*.pdf"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/book",
+        "function": "bookslot"
+      },
+      {
+        "source": "/api/notifications/send",
+        "function": "sendnotification"
+      },
+      {
+        "source": "/api/oauth/callback",
+        "function": "oauthtokenexchange"
+      },
+      {
+        "source": "/api/sso",
+        "function": "ssohandler"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [
+          { "key": "Cache-Control", "value": "max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
+  },
+  "emulators": {
+    "database": { "port": 9000 },
+    "auth": { "port": 9099 },
+    "hosting": { "port": 5000 },
+    "functions": { "port": 5001 }
+  }
+}

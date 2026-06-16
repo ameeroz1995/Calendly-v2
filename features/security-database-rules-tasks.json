@@ -1,0 +1,81 @@
+{
+  "feature": {
+    "id": "security-database-rules",
+    "title": "Fix overly permissive Firebase RTDB security rules",
+    "priority": "BLOCKER",
+    "scoreImpact": {
+      "Security": "5/10 → 9/10"
+    },
+    "estimatedEffort": "M (1 day)",
+    "dependsOn": []
+  },
+  "tasks": [
+    {
+      "id": "db-01",
+      "title": "Add ownership validation to bookings write rule",
+      "description": "Current rule `\"bookings\": { \"$bid\": { \".write\": \"auth != null\" } }` allows ANY authenticated user to create/modify ANY booking. Fix: add ownership check requiring write to match hostId. Additionally add invitee write for booking creation by non-host users.",
+      "affectedFiles": [
+        "database.rules.json"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 1,
+      "acceptanceCriteria": [
+        "bookings.$bid.write requires `auth.uid === newData.child('hostId').val() || auth.uid === data.child('inviteeId').val()`",
+        "New booking creation allowed for auth.uid matching hostId",
+        "Booking status update (cancel) allowed for hostId or inviteeId",
+        "validate rule preserved: newData.hasChildren(['hostId','eventTypeId','date','slotId','status'])",
+        "validate rule extended: newData.child('hostId').val() === auth.uid for new records"
+      ]
+    },
+    {
+      "id": "db-02",
+      "title": "Add ownership validation to routing_forms and routing_pools write rules",
+      "description": "Current rules allow ANY authenticated user to write to routing_forms/$fid and routing_pools/$pid. Add ownership checks: forms should validate against hostId/uid field, pools should validate against hostId/uid field.",
+      "affectedFiles": [
+        "database.rules.json"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 1,
+      "acceptanceCriteria": [
+        "routing_forms.$fid.write requires `auth.uid === newData.child('uid').val() || auth.uid === data.child('uid').val()`",
+        "routing_pools.$pid.write requires `auth.uid === newData.child('uid').val() || auth.uid === data.child('uid').val()`",
+        "routing_counters.$pid.write requires `auth.uid === data.child('uid').val()` (only pool owner increments counter)"
+      ]
+    },
+    {
+      "id": "db-03",
+      "title": "Tighten availability slot write rule",
+      "description": "Current rule allows any authenticated user to mark a free slot as busy if they write `{status:'busy'}`. This should only be possible via the Cloud Function (which uses admin SDK, bypassing rules). The client-side rule should restrict writes to the slot owner (host). The Cloud Function handles slot booking via admin SDK.",
+      "affectedFiles": [
+        "database.rules.json"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "availability.$hostId.$date.$slotId.write requires `$hostId === auth.uid`",
+        "Remove the `data.child('status').val() === 'free' && newData.child('status').val() === 'busy'` clause",
+        "Cloud Function book-slot.js uses admin SDK — unaffected by this rule change"
+      ]
+    },
+    {
+      "id": "db-04",
+      "title": "Add validate rules for formData, webhook_failures, and audit_logs",
+      "description": "Add .validate constraints to prevent arbitrary data injection: bookings formData max size, webhook_failures URL format, audit_logs required fields. Add rate-limiting write rules for notifications node.",
+      "affectedFiles": [
+        "database.rules.json"
+      ],
+      "dependencies": ["db-01", "db-02", "db-03"],
+      "complexity": "M",
+      "estimatedHours": 2,
+      "acceptanceCriteria": [
+        "bookings.$bid.validate: formData child values are strings, max 500 chars each",
+        "webhook_failures.$sid.validate: url is string matching https?:// pattern",
+        "audit_logs.validate: newData.hasChildren(['action','userId','timestamp'])",
+        "notifications.$nid.validate: newData.hasChildren(['type','hostId','createdAt'])"
+      ]
+    }
+  ]
+}

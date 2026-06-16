@@ -1,0 +1,137 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.child('displayName').isString() && newData.child('displayName').val().length <= 200 && newData.child('email').isString() && newData.child('email').val().length <= 254"
+      }
+    },
+    "event_types": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        "$eid": {
+          ".validate": "newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 200 && newData.child('duration').isNumber() && newData.child('duration').val() >= 5 && newData.child('duration').val() <= 480"
+        }
+      }
+    },
+    "availability": {
+      "$hostId": {
+        ".read": "true",
+        "$date": {
+          "$slotId": {
+            ".write": "auth != null && $hostId === auth.uid",
+            ".validate": "newData.hasChildren(['status', 'start', 'end', 'date', 'time', 'sid'])"
+          }
+        }
+      }
+    },
+    "calendar_connections": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "booking_rules": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "bookings": {
+      "$bid": {
+        ".read": "auth != null && (data.child('hostId').val() === auth.uid || data.child('inviteeId').val() === auth.uid)",
+        ".write": "auth != null && (newData.child('hostId').val() === auth.uid || data.child('inviteeId').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['hostId', 'eventTypeId', 'date', 'slotId', 'status']) && newData.child('hostId').isString() && newData.child('hostId').val().length > 0 && newData.child('eventTypeId').isString() && newData.child('date').isString() && newData.child('date').val().length === 10 && newData.child('slotId').isString() && newData.child('status').isString()"
+      }
+    },
+    "host_bookings": {
+      "$hostId": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $hostId",
+        "$bid": {
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+    "invitee_bookings": {
+      "$inviteeId": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$bid": {
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+    "routing_forms": {
+      "$fid": {
+        ".read": "auth != null",
+        ".write": "auth != null && (newData.child('uid').val() === auth.uid || data.child('uid').val() === auth.uid)",
+        ".validate": "newData.child('uid').isString() && newData.child('uid').val().length > 0"
+      }
+    },
+    "routing_pools": {
+      "$pid": {
+        ".read": "auth != null",
+        ".write": "auth != null && (newData.child('uid').val() === auth.uid || data.child('uid').val() === auth.uid)",
+        ".validate": "newData.child('uid').isString() && newData.child('uid').val().length > 0"
+      }
+    },
+    "routing_counters": {
+      "$pid": {
+        ".read": "auth != null",
+        ".write": "auth != null && data.child('uid').val() === auth.uid"
+      }
+    },
+    "workspaces": {
+      "$wid": {
+        ".read": "auth != null && (data.child('hostId').val() === auth.uid || data.child('clientId').val() === auth.uid)",
+        ".write": "auth != null && (data.child('hostId').val() === auth.uid || data.child('clientId').val() === auth.uid)"
+      }
+    },
+    "secure_phi": {
+      "$bid": {
+        ".read": "auth != null && (root.child('bookings').child($bid).child('hostId').val() === auth.uid || root.child('bookings').child($bid).child('inviteeId').val() === auth.uid)",
+        ".write": "auth != null && root.child('bookings').child($bid).child('inviteeId').val() === auth.uid"
+      }
+    },
+    "webhook_subscriptions": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "webhook_failures": {
+      "$sid": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.child('url').isString() && newData.child('url').val().matches(/^https?:\\/\\//)"
+      }
+    },
+    "api_keys": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "notification_prefs": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "notifications": {
+      "$nid": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.hasChildren(['type', 'hostId', 'createdAt'])"
+      }
+    },
+    "audit_logs": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".validate": "newData.hasChildren(['action', 'userId', 'timestamp'])"
+    }
+  }
+}

