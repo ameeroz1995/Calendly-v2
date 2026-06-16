@@ -127,7 +127,7 @@ async function dispatchWithRetry(url, payload, secret, sid, hostId, currentDeliv
     sid,
     url,
     payload,
-    secret,
+    secret: secret ? secret.slice(0, 8) + '...' : null,
     failedAt: new Date().toISOString(),
     error: 'Exhausted all retry attempts',
   })
