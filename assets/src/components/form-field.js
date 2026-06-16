@@ -97,7 +97,7 @@ export function createFormField({ field = {}, value = '', errors = {} } = {}) {
  */
 const _cache = new Map()
 export function formField(field, value = '', errors = {}) {
-  const key = `${field?.id}|${value}`
+  const key = JSON.stringify({ field, value, errors })
   if (!_cache.has(key)) _cache.set(key, createFormField({ field, value, errors }).toString())
   return _cache.get(key)
 }

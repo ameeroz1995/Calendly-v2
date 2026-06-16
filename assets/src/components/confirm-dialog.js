@@ -39,8 +39,8 @@ export function createConfirmDialog() {
       modal.configure({ title, bodyHtml, footerHtml, onClose: () => _finish(false) })
       modal.open()
 
-      ctrl.trigger('click', 'confirm-cancel', () => _finish(false))
-      ctrl.trigger('click', 'confirm-ok', () => _finish(true))
+      modal.trigger('click', 'confirm-cancel', () => _finish(false))
+      modal.trigger('click', 'confirm-ok', () => _finish(true))
     })
   }
 
