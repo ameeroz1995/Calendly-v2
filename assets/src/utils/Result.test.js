@@ -8,8 +8,8 @@ import { Result, AsyncResult } from './Result.js'
 describe('Result (sync)', () => {
   it('ok() creates success', () => {
     const r = Result.ok(42)
-    assert.equal(r.isOk, true)
-    assert.equal(r.isErr, false)
+    assert.equal(r.ok, true)
+    assert.equal(!r.ok, false)
     const [v, e] = r.unwrap()
     assert.equal(v, 42)
     assert.equal(e, null)
@@ -17,8 +17,8 @@ describe('Result (sync)', () => {
 
   it('err() creates error', () => {
     const r = Result.err(new Error('fail'))
-    assert.equal(r.isOk, false)
-    assert.equal(r.isErr, true)
+    assert.equal(r.ok, false)
+    assert.equal(!r.ok, true)
     const [v, e] = r.unwrap()
     assert.equal(v, null)
     assert.ok(e instanceof Error)
@@ -44,12 +44,12 @@ describe('Result (sync)', () => {
 
   it('map() skips on error', () => {
     const r = Result.err(new Error('nope')).map(x => x * 2)
-    assert.equal(r.isErr, true)
+    assert.equal(!r.ok, true)
   })
 
   it('map() catches mapper throws', () => {
     const r = Result.ok(1).map(() => { throw new Error('mapper fail') })
-    assert.equal(r.isErr, true)
+    assert.equal(!r.ok, true)
   })
 
   it('flatMap() returns nested Result', () => {
@@ -59,7 +59,7 @@ describe('Result (sync)', () => {
 
   it('flatMap() skips on error', () => {
     const r = Result.err(new Error('base')).flatMap(x => Result.ok(x))
-    assert.equal(r.isErr, true)
+    assert.equal(!r.ok, true)
   })
 
   it('mapErr() transforms error', () => {
@@ -91,9 +91,9 @@ describe('Result (sync)', () => {
   })
 
   it('recover() transforms error to success', () => {
-    const r = Result.err(new Error('fail')).recover(() => 'recovered')
+    const r = Result.err(new Error('fail')).recover(() => Result.ok('recovered'))
     assert.equal(r.unwrap()[0], 'recovered')
-    assert.equal(r.isOk, true)
+    assert.equal(r.ok, true)
   })
 
   it('unwrapOr() returns value on success', () => {
@@ -115,14 +115,14 @@ describe('Result (sync)', () => {
 
 describe('AsyncResult', () => {
   it('from() resolves promise', async () => {
-    const r = AsyncResult.from(Promise.resolve(42))
+    const r = AsyncResult.from(() => Promise.resolve(42))
     const [v, e] = await r.unwrap()
     assert.equal(v, 42)
     assert.equal(e, null)
   })
 
   it('from() catches rejected promise', async () => {
-    const r = AsyncResult.from(Promise.reject(new Error('async fail')))
+    const r = AsyncResult.from(() => Promise.reject(new Error('async fail')))
     const [v, e] = await r.unwrap()
     assert.equal(v, null)
     assert.equal(e.message, 'async fail')
@@ -146,7 +146,7 @@ describe('AsyncResult', () => {
   })
 
   it('map() chains async mappers', async () => {
-    const r = AsyncResult.ok(5).map(async x => x * 3)
+    const r = AsyncResult.ok(5).map(x => x * 3)
     const [v] = await r.unwrap()
     assert.equal(v, 15)
   })
@@ -158,7 +158,7 @@ describe('AsyncResult', () => {
   })
 
   it('flatMap() with AsyncResult return', async () => {
-    const r = AsyncResult.ok(2).flatMap(x => AsyncResult.ok(x * 100))
+    const r = AsyncResult.ok(2).flatMap(x => Result.ok(x * 100))
     const [v] = await r.unwrap()
     assert.equal(v, 200)
   })
