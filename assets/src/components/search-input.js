@@ -44,7 +44,7 @@ export function createSearchInput({ placeholder = 'Search...', debounceMs = DEFA
         _notify('')
       },
       _onInput() {
-        const el = document.getElementById('search-input')
+        const el = ctrl.$('search-input')
         if (!el) return
         const query = el.value
         ctrl.render({ query })

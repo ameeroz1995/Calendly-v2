@@ -278,7 +278,7 @@ export function createBooking({ router, eventBus } = {}) {
         ]
         const formData = {}
         for (const f of fields) {
-          const el = document.getElementById('bf-' + f.id)
+          const el = ctrl.$('bf-' + f.id)
           if (el) formData[f.id] = el.value || ''
         }
         ctrl.render({ bookingFormData: formData, bookingStep: 'confirm' })
@@ -314,7 +314,7 @@ export function createBooking({ router, eventBus } = {}) {
         })
       },
       submitPassword() {
-        const el = document.getElementById('booking-password')
+        const el = ctrl.$('booking-password')
         const password = el ? el.value : ''
         const eventType = ctrl.getState().bookingEventType || {}
         if (password && password === eventType.password) {

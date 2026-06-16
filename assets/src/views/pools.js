@@ -87,7 +87,7 @@ export function createPools({ router, eventBus } = {}) {
     },
     methods: {
       createPool() {
-        const name = (document.getElementById('pool-name')?.value || '').trim()
+        const name = (ctrl.$('pool-name')?.value || '').trim()
         if (!name) return
         const pid = 'pl_' + Math.random().toString(36).slice(2, 8)
         const now = new Date().toISOString()

@@ -145,10 +145,10 @@ export function createAvailability({ router, eventBus } = {}) {
         }
         const workingHours = ctrl.getState().workingHours || {}
         const bookingRules = {}
-        const maxPerDay = document.getElementById('br-maxPerDay')?.value
-        const minNotice = document.getElementById('br-minNotice')?.value
-        const maxAdvance = document.getElementById('br-maxAdvance')?.value
-        const buffer = document.getElementById('br-buffer')?.value
+        const maxPerDay = ctrl.$('br-maxPerDay')?.value
+        const minNotice = ctrl.$('br-minNotice')?.value
+        const maxAdvance = ctrl.$('br-maxAdvance')?.value
+        const buffer = ctrl.$('br-buffer')?.value
         if (maxPerDay) bookingRules.maxPerDay = parseInt(maxPerDay)
         if (minNotice) bookingRules.minNoticeHours = parseInt(minNotice)
         if (maxAdvance) bookingRules.maxAdvanceDays = parseInt(maxAdvance)

@@ -74,8 +74,8 @@ export function createSettings({ router, eventBus } = {}) {
     methods: {
       saveSettings() {
         ctrl.render({ saving: true })
-        const name = document.getElementById('st-name')?.value || ''
-        const tz = document.getElementById('st-tz')?.value || ''
+        const name = ctrl.$('st-name')?.value || ''
+        const tz = ctrl.$('st-tz')?.value || ''
         const user = { ...ctrl.getState().user, displayName: name, timezone: tz }
         setTimeout(() => ctrl.render({ saving: false, user }), 500)
       },
