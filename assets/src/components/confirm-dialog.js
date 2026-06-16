@@ -41,8 +41,8 @@ export function createConfirmDialog() {
 
       // Bind footer buttons after DOM renders
       setTimeout(() => {
-        const cancelBtn = document.getElementById('confirm-cancel')
-        const okBtn = document.getElementById('confirm-ok')
+        const cancelBtn = ctrl.$('confirm-cancel')
+        const okBtn = ctrl.$('confirm-ok')
         if (cancelBtn) cancelBtn.onclick = () => _finish(false)
         if (okBtn) okBtn.onclick = () => _finish(true)
       }, 50)

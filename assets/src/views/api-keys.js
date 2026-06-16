@@ -112,7 +112,7 @@ export function createApiKeys({ router, eventBus } = {}) {
       },
       dismissRevealedKey() {ctrl.render({ revealedKey: false })},
       generateKey() {
-        const name = (document.getElementById('ak-name')?.value || '').trim()
+        const name = (ctrl.$('ak-name')?.value || '').trim()
         if (!name) return
         const kid = 'cal_live_' + Math.random().toString(36).slice(2, 14)
         const now = new Date().toISOString()
