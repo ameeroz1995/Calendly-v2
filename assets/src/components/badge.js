@@ -49,6 +49,9 @@ export function createBadge({ variant = 'neutral', label = '' } = {}) {
  * @param {string} [label='']
  * @returns {string} HTML placeholder (data-cid)
  */
+let _cachedBadge = null
 export function badge(variant = 'neutral', label = '') {
-  return createBadge({ variant, label }).toString()
+  if (_cachedBadge) return _cachedBadge
+  _cachedBadge = createBadge({ variant, label }).toString()
+  return _cachedBadge
 }
