@@ -39,13 +39,8 @@ export function createConfirmDialog() {
       modal.configure({ title, bodyHtml, footerHtml, onClose: () => _finish(false) })
       modal.open()
 
-      // Bind footer buttons after DOM renders
-      setTimeout(() => {
-        const cancelBtn = document.getElementById('confirm-cancel')
-        const okBtn = document.getElementById('confirm-ok')
-        if (cancelBtn) cancelBtn.onclick = () => _finish(false)
-        if (okBtn) okBtn.onclick = () => _finish(true)
-      }, 50)
+      ctrl.trigger('click', 'confirm-cancel', () => _finish(false))
+      ctrl.trigger('click', 'confirm-ok', () => _finish(true))
     })
   }
 
