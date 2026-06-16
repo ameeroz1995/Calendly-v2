@@ -6,7 +6,7 @@
  */
 
 import { AsyncResult } from '../utils/Result.js'
-import { dbRef, dbRead, dbWrite } from '../firebase.js'
+import { dbRef, dbRead, dbWrite } from '../db.js'
 
 const NOTIFY_ENDPOINT = '/api/notifications/send'
 const DEFAULT_PREFS = {

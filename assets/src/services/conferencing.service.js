@@ -7,7 +7,7 @@
  */
 
 import { AsyncResult } from '../utils/Result.js'
-import { dbRef, dbUpdate } from '../firebase.js'
+import { dbRef, dbUpdate } from '../db.js'
 import { generateRandomHex } from '../utils/crypto.js'
 
 const CONFERENCING_PROVIDERS = {
