@@ -84,7 +84,7 @@ export function complianceView({ state, fn }) {
 }
 
 export function createComplianceView({ router, eventBus } = {}) {
-  return controller({
+  const ctrl = controller({
     template({ state, fn }) { return complianceView({ state, fn }) },
     state: { loading: false, error: '', compliance: {}, saving: false, saveError: '' },
     methods: {
@@ -93,4 +93,5 @@ export function createComplianceView({ router, eventBus } = {}) {
       setError(e) { ctrl.render({ error: e, loading: false }) },
     },
   })
+  return ctrl
 }
