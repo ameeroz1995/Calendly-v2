@@ -163,6 +163,13 @@ describe('AsyncResult', () => {
     assert.equal(v, 200)
   })
 
+  it('flatMap() with Result.err propagates error', async () => {
+    const r = AsyncResult.ok(2).flatMap(x => Result.err(new Error('flat fail')))
+    const [v, e] = await r.unwrap()
+    assert.equal(v, null)
+    assert.equal(e.message, 'flat fail')
+  })
+
   it('recover() from error', async () => {
     const r = AsyncResult.err(new Error('boom')).recover(() => 'safe')
     const [v] = await r.unwrap()
