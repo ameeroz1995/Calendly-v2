@@ -104,9 +104,8 @@
     },
     "webhook_failures": {
       "$sid": {
-        ".read": "auth != null",
-        ".write": "auth != null",
-        ".validate": "newData.child('url').isString() && newData.child('url').val().matches(/^https?:\\/\\//)"
+        ".read": false,
+        ".write": false
       }
     },
     "api_keys": {
