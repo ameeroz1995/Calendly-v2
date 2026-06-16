@@ -55,8 +55,11 @@ export function createUserAvatar({ user, size = 'md' } = {}) {
  * @param {string} [size='md'] — sm|md|lg
  * @returns {string} HTML placeholder (data-cid)
  */
+let _cachedUserAvatar = null
 export function userAvatar(user, size = 'md') {
-  return createUserAvatar({ user, size }).toString()
+  if (_cachedUserAvatar) return _cachedUserAvatar
+  _cachedUserAvatar = createUserAvatar({ user, size }).toString()
+  return _cachedUserAvatar
 }
 
 function getInitials(user) {

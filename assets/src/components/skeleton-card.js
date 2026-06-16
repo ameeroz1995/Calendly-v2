@@ -46,6 +46,9 @@ export function createSkeletonCards({ count = 1 } = {}) {
  * @param {number} [count=1]
  * @returns {string} HTML placeholder (data-cid)
  */
+let _cachedSkeletonCards = null
 export function skeletonCards(count = 1) {
-  return createSkeletonCards({ count }).toString()
+  if (_cachedSkeletonCards) return _cachedSkeletonCards
+  _cachedSkeletonCards = createSkeletonCards({ count }).toString()
+  return _cachedSkeletonCards
 }
