@@ -5,7 +5,7 @@
  */
 
 import { AsyncResult } from '../utils/Result.js'
-import { dbRef, dbRead, dbWrite, dbUpdate, dbRemove, dbTransaction } from '../firebase.js'
+import { dbRef, dbRead, dbWrite, dbUpdate, dbRemove, dbTransaction } from '../db.js'
 import { generateRandomHex } from '../utils/crypto.js'
 
 // ── Routing Forms ──

@@ -6,7 +6,7 @@
  */
 
 import { AsyncResult } from '../utils/Result.js'
-import { dbRef, dbRead, dbWrite, dbUpdate } from '../firebase.js'
+import { dbRef, dbRead, dbWrite, dbUpdate } from '../db.js'
 import { getCurrentUser } from './auth.service.js'
 import { generateRandomHex } from '../utils/crypto.js'
 
