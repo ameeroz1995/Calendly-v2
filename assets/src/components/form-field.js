@@ -95,6 +95,9 @@ export function createFormField({ field = {}, value = '', errors = {} } = {}) {
  * @param {Object} [errors={}]
  * @returns {string} HTML placeholder (data-cid)
  */
+const _cache = new Map()
 export function formField(field, value = '', errors = {}) {
-  return createFormField({ field, value, errors }).toString()
+  const key = JSON.stringify({ field, value, errors })
+  if (!_cache.has(key)) _cache.set(key, createFormField({ field, value, errors }).toString())
+  return _cache.get(key)
 }

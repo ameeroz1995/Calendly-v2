@@ -44,6 +44,7 @@ export function createModal() {
       open() {
         ctrl.render({ open: true })
         document.addEventListener('keydown', _onEscape)
+        ctrl.unsub(() => document.removeEventListener('keydown', _onEscape))
       },
       close() {
         ctrl.render({ open: false })

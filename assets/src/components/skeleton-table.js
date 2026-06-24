@@ -51,6 +51,9 @@ export function createSkeletonTable({ rows = 5, cols = 5 } = {}) {
  * @param {number} [cols=5]
  * @returns {string} HTML placeholder (data-cid)
  */
+const _cache = new Map()
 export function skeletonTable(rows = 5, cols = 5) {
-  return createSkeletonTable({ rows, cols }).toString()
+  const key = `${rows}|${cols}`
+  if (!_cache.has(key)) _cache.set(key, createSkeletonTable({ rows, cols }).toString())
+  return _cache.get(key)
 }

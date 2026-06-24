@@ -55,8 +55,11 @@ export function createUserAvatar({ user, size = 'md' } = {}) {
  * @param {string} [size='md'] — sm|md|lg
  * @returns {string} HTML placeholder (data-cid)
  */
+const _cache = new Map()
 export function userAvatar(user, size = 'md') {
-  return createUserAvatar({ user, size }).toString()
+  const key = `${user?.uid}|${size}`
+  if (!_cache.has(key)) _cache.set(key, createUserAvatar({ user, size }).toString())
+  return _cache.get(key)
 }
 
 function getInitials(user) {

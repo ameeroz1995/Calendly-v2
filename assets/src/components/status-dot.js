@@ -44,6 +44,9 @@ export function createStatusDot({ color = 'gray' } = {}) {
  * @param {string} [color='gray'] — green|yellow|red|gray
  * @returns {string} HTML placeholder (data-cid)
  */
+const _cache = new Map()
 export function statusDot(color = 'gray') {
-  return createStatusDot({ color }).toString()
+  const key = `${color}`
+  if (!_cache.has(key)) _cache.set(key, createStatusDot({ color }).toString())
+  return _cache.get(key)
 }
