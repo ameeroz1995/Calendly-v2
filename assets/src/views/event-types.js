@@ -185,13 +185,13 @@ export function createEventTypes({ router, eventBus } = {}) {
         ctrl.render({ editingId: '' })
       },
       async createEventType() {
-        const title = (document.getElementById('et-title')?.value || '').trim()
+        const title = (ctrl.$('et-title')?.value || '').trim()
         if (!title) return
         const uid = ctrl.getState().user?.uid
-        const duration = parseInt(document.getElementById('et-duration')?.value || '30')
-        const location = document.getElementById('et-location')?.value || 'zoom'
-        const visibility = document.getElementById('et-visibility')?.value || 'public'
-        const color = document.getElementById('et-color')?.value || '#7047EB'
+        const duration = parseInt(ctrl.$('et-duration')?.value || '30')
+        const location = ctrl.$('et-location')?.value || 'zoom'
+        const visibility = ctrl.$('et-visibility')?.value || 'public'
+        const color = ctrl.$('et-color')?.value || '#7047EB'
         const eid = 'evt_' + Math.random().toString(36).slice(2, 8)
         const now = new Date().toISOString()
         const newEvent = { eid, title, duration, location, visibility, color, active: true, createdAt: now }
@@ -205,9 +205,9 @@ export function createEventTypes({ router, eventBus } = {}) {
       },
       async saveEventType(eid) {
         const uid = ctrl.getState().user?.uid
-        const title = (document.getElementById('et-edit-title')?.value || '').trim()
-        const duration = parseInt(document.getElementById('et-edit-duration')?.value || '30')
-        const location = document.getElementById('et-edit-location')?.value || 'zoom'
+        const title = (ctrl.$('et-edit-title')?.value || '').trim()
+        const duration = parseInt(ctrl.$('et-edit-duration')?.value || '30')
+        const location = ctrl.$('et-edit-location')?.value || 'zoom'
         const et = (ctrl.getState().eventTypes || []).find(e => e.eid === eid)
         if (!et) return
         const updated = { ...et, title: title || et.title, duration, location, updatedAt: new Date().toISOString() }
@@ -227,7 +227,7 @@ export function createEventTypes({ router, eventBus } = {}) {
       },
       _setFormField(field) { /* reads from DOM on create/save */ },
       _searchEventTypes() {
-        const input = document.querySelector('#event-types-search') || document.querySelector('input[placeholder*="Search"]')
+        const input = ctrl.$('event-types-search') || document.querySelector('input[placeholder*="Search"]')
         const query = input?.value || ''
         ctrl.render({ eventTypeSearch: query })
       },

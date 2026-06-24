@@ -254,7 +254,7 @@ export function createRoutingForms({ router, eventBus } = {}) {
         const state = ctrl.getState()
         const form = state.builderForm
         if (!form) return
-        const name = (document.getElementById('rf-name')?.value || '').trim()
+        const name = (ctrl.$('rf-name')?.value || '').trim()
         if (!name) { ctrl.render({ saveError: 'Form name is required' }); return }
         const now = new Date().toISOString()
         const saved = { ...form, name, updatedAt: now }
@@ -304,6 +304,8 @@ export function createRoutingForms({ router, eventBus } = {}) {
         const form = { ...ctrl.getState().builderForm }
         const questions = [...(form.questions || [])]
         if (!questions[qi]) return
+        // NOTE: these elements are dynamically generated without id attributes;
+        // querySelector is used as a fallback until ids can be added to the template.
         // Read from DOM inputs that target this question
         const selectEl = document.querySelector(`select[onchange*="_updateQuestion(${qi}, 'type')"]`)
         const inputEl = document.querySelector(`input[oninput*="_updateQuestion(${qi}, 'label')"]`)

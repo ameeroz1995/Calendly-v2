@@ -108,7 +108,7 @@ export function createContactDetail({ router, eventBus } = {}) {
     },
     methods: {
       addNote() {
-        const input = document.getElementById('contact-note-input')
+        const input = ctrl.$('contact-note-input')
         if (!input) return
         const text = input.value.trim()
         if (!text) return
